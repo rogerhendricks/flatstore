@@ -8,12 +8,16 @@ import (
 )
 
 func TestFetchDiscoverApps(t *testing.T) {
-	// 1. Create mock data
-	mockApps := []AppSummary{
-		{
-			FlatpakAppId: "org.gimp.GIMP",
-			Name:         "GIMP",
-			Summary:      "GNU Image Manipulation Program",
+	// 1. Create mock data using the Flathub v2 API wire format {"hits":[...]}
+	mockResponse := map[string]interface{}{
+		"hits": []map[string]interface{}{
+			{
+				"app_id":         "org.gimp.GIMP",
+				"name":           "GIMP",
+				"summary":        "GNU Image Manipulation Program",
+				"icon":           "",
+				"developer_name": "",
+			},
 		},
 	}
 
@@ -22,7 +26,7 @@ func TestFetchDiscoverApps(t *testing.T) {
 		if r.URL.Path != "/collection/recently-updated" {
 			t.Errorf("Expected path /collection/recently-updated, got %s", r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(mockApps)
+		json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
@@ -43,5 +47,9 @@ func TestFetchDiscoverApps(t *testing.T) {
 
 	if apps[0].Name != "GIMP" {
 		t.Errorf("Expected app name 'GIMP', got '%s'", apps[0].Name)
+	}
+
+	if apps[0].FlatpakAppId != "org.gimp.GIMP" {
+		t.Errorf("Expected FlatpakAppId 'org.gimp.GIMP', got '%s'", apps[0].FlatpakAppId)
 	}
 }
