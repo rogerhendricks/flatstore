@@ -21,6 +21,11 @@ type Client struct {
 	apiBase    string
 }
 
+// // SetBaseURL allows overriding the API endpoint for testing purposes
+// func (c *Client) SetBaseURL(url string) {
+// 	c.apiBase = url
+// }
+
 func NewClient() *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: 10 * time.Second},
