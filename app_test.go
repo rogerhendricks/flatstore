@@ -16,7 +16,7 @@ func TestAppDiscoverApps(t *testing.T) {
 
 	// Intentionally point to a bad URL to test error handling,
 	// or point to an httptest server like in the flathub tests.
-	flathubClient.apiBase = "http://127.0.0.1:0"
+	flathubClient.SetAPIBase("http://127.0.0.1:0")
 
 	catalogManager := appstream.NewManager()
 

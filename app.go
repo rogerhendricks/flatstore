@@ -42,6 +42,12 @@ func (a *App) startup(ctx context.Context) {
 	}()
 }
 
+// GetDiscoverApps returns the list of recently updated apps from Flathub,
+// used to populate the frontend's discover/home page.
+func (a *App) GetDiscoverApps() ([]flathub.AppSummary, error) {
+	return a.flathub.FetchDiscoverApps()
+}
+
 // InstallApp handles async tasks natively now
 func (a *App) InstallApp(appID string, installAsSystem bool) error {
 	args := []string{"install", "flathub", appID}

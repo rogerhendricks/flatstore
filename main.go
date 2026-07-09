@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 
+	"flatstore/internal/appstream"
 	"flatstore/internal/flathub"
 
 	"github.com/wailsapp/wails/v2"
@@ -10,13 +11,13 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
 	// Initialize core services
 	flathubClient := flathub.NewClient()
-	app := NewApp(flathubClient)
+	catalogManager := appstream.NewManager()
+	app := NewApp(flathubClient, catalogManager)
 
 	err := wails.Run(&options.App{
 		Title:  "FlatStore",

@@ -28,6 +28,13 @@ func NewClient() *Client {
 	}
 }
 
+// SetAPIBase overrides the default Flathub API base URL. This is primarily
+// useful for testing purposes, allowing callers outside this package to
+// point the client at a mock server or an invalid URL.
+func (c *Client) SetAPIBase(base string) {
+	c.apiBase = base
+}
+
 func (c *Client) FetchDiscoverApps() ([]AppSummary, error) {
 	// Pulls the recently updated apps from flathub endpoint
 	resp, err := c.httpClient.Get(fmt.Sprintf("%s/collection/recently-updated", c.apiBase))

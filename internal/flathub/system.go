@@ -11,6 +11,9 @@ import (
 	"strings"
 )
 
+// Allow overriding the command executor for unit testing
+var execCommandContext = exec.CommandContext
+
 // ProgressPayload is the structured data we send to the frontend
 type ProgressPayload struct {
 	AppID      string `json:"appId"`
@@ -35,7 +38,8 @@ func (m *SystemManager) ExecuteWithProgress(ctx context.Context, appID string, a
 	defaultArgs := []string{"--noninteractive", "-y"}
 	finalArgs := append(args, defaultArgs...)
 
-	cmd := exec.CommandContext(ctx, "flatpak", finalArgs...)
+	// cmd := exec.CommandContext(ctx, "flatpak", finalArgs...)
+	cmd := execCommandContext(ctx, "flatpak", finalArgs...)
 
 	// Create a pipe to capture standard output
 	stdoutPipe, err := cmd.StdoutPipe()
