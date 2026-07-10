@@ -26,6 +26,13 @@ type SystemManager struct {
 	emitEvent func(eventName string, optionalData ...interface{})
 }
 
+type InstalledApp struct {
+	AppID           string `json:"appId"`
+	Name            string `json:"name"`
+	Version         string `json:"version"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+}
+
 func NewSystemManager(emitter func(string, ...interface{})) *SystemManager {
 	return &SystemManager{
 		emitEvent: emitter,
@@ -110,4 +117,45 @@ func (m *SystemManager) parseProgressStream(reader io.ReadCloser, appID string) 
 			}
 		}
 	}
+}
+
+// ListInstalledApps queries the system for installed flatpaks and checks for updates
+func (m *SystemManager) ListInstalledApps(ctx context.Context) ([]InstalledApp, error) {
+	// 1. Get installed apps (tab-separated for easy parsing)
+	cmd := execCommandContext(ctx, "flatpak", "list", "--app", "--columns=application,name,version")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list apps: %w", err)
+	}
+
+	// 2. Get updates
+	updateCmd := execCommandContext(ctx, "flatpak", "remote-ls", "--updates", "--app", "--columns=application")
+	updateOut, _ := updateCmd.Output() // Ignore error, if it fails we just assume no updates
+
+	// Parse updates into a map for fast O(1) lookup
+	updates := make(map[string]bool)
+	for _, line := range strings.Split(string(updateOut), "\n") {
+		cleanLine := strings.TrimSpace(line)
+		if cleanLine != "" {
+			updates[cleanLine] = true
+		}
+	}
+
+	// Parse the installed apps
+	var apps []InstalledApp
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		parts := strings.Split(line, "\t")
+		if len(parts) >= 3 {
+			appID := strings.TrimSpace(parts[0])
+			apps = append(apps, InstalledApp{
+				AppID:           appID,
+				Name:            strings.TrimSpace(parts[1]),
+				Version:         strings.TrimSpace(parts[2]),
+				UpdateAvailable: updates[appID],
+			})
+		}
+	}
+
+	return apps, nil
 }

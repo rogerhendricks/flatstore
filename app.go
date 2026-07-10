@@ -76,3 +76,8 @@ func (a *App) InstallApp(appID string, installAsSystem bool) error {
 
 	return nil
 }
+
+// GetInstalledApps returns the system's installed Flatpaks
+func (a *App) GetInstalledApps() ([]flathub.InstalledApp, error) {
+	return a.systemManager.ListInstalledApps(a.ctx)
+}
