@@ -281,11 +281,11 @@
 <main class="flex h-screen w-screen overflow-hidden bg-background text-foreground select-none"
 >
 	<aside
-		class="flex flex-col w-64 min-w-[16rem] bg-card border-r border-border p-5 overflow-y-auto"
+		class="flex flex-col w-52 min-w-[13rem] bg-card border-r border-border p-3 overflow-y-auto"
 	>
 		<input
 			type="text"
-			class="w-full px-3 py-2 mb-6 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+			class="w-full px-3 py-1.5 mb-4 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
 			placeholder="Search apps..."
 			spellcheck="false"
 			bind:value={searchQuery}
@@ -293,69 +293,69 @@
 		/>
 
 		<h3
-			class="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-3 px-2"
+			class="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2 px-2"
 		>Categories</h3>
 
-		<ul class="flex-1 space-y-1">
+		<ul class="flex-1 space-y-0.5">
 			<li>
 				<button
-					class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors
+					class="w-full flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-lg transition-colors
                            {activeCategory === 'Discover'
 						? 'bg-primary/10 text-primary'
 						: 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
 					on:click={loadDiscover}
-				><Sparkles class="w-4 h-4" />Discover</button>
+				><Sparkles class="w-4 h-4 shrink-0" />Discover</button>
 			</li>
 
 			{#each categories as cat}
 				<li>
 					<button
-						class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors
+						class="w-full flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-lg transition-colors
                                {activeCategory === cat.id
 							? 'bg-primary/10 text-primary'
 							: 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
 						on:click={() => loadCategory(cat.id, cat.label)}
 					>
-						<svelte:component this={cat.icon} class="w-4 h-4" />
+						<svelte:component this={cat.icon} class="w-4 h-4 shrink-0" />
 						{cat.label}
 					</button>
 				</li>
 			{/each}
 			<li>
 				<button 
-					class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors
+					class="w-full flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-lg transition-colors
 						{activeCategory === 'Installed' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
 					on:click={loadInstalled}
 				>
-					<HardDriveDownload class="w-4 h-4" />
+					<HardDriveDownload class="w-4 h-4 shrink-0" />
 					Installed Apps
 				</button>
 			</li>
 		</ul>
 
 		<div
-			class="pt-4 mt-4 border-t border-border flex justify-between items-center px-1 text-muted-foreground"
+			class="pt-3 mt-3 border-t border-border flex justify-between items-center px-1 text-muted-foreground"
 		>
 			<button
-				class="p-2 rounded-xl hover:bg-muted hover:text-foreground {currentTheme === 'light' ? 'bg-muted text-foreground' : ''}"
+				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'light' ? 'bg-muted text-foreground' : ''}"
 				on:click={() => applyTheme('light')}
 				title="Light Mode"
 			><Sun class="w-4 h-4" /></button>
 
 			<button
-				class="p-2 rounded-xl hover:bg-muted hover:text-foreground {currentTheme === 'system' ? 'bg-muted text-foreground' : ''}"
+				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'system' ? 'bg-muted text-foreground' : ''}"
 				on:click={() => applyTheme('system')}
 				title="System Theme"
 			><Laptop class="w-4 h-4" /></button>
 
 			<button
-				class="p-2 rounded-xl hover:bg-muted hover:text-foreground {currentTheme === 'dark' ? 'bg-muted text-foreground' : ''}"
+				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'dark' ? 'bg-muted text-foreground' : ''}"
 				on:click={() => applyTheme('dark')}
 				title="Dark Mode"
 			><Moon class="w-4 h-4" /></button>
 		</div>
 
-		        <div class="pt-4 mt-4 border-t border-border flex justify-between items-center">
+		<div class="pt-3 mt-3 border-t border-border flex justify-between items-center">
             
             <Popover.Root>
                 <Popover.Trigger
