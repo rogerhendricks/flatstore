@@ -21,7 +21,11 @@
 		Download,
 		Trash2,
 		RefreshCw,
-		Loader2
+		PackageCheck,
+		Loader2,
+		Check,
+        User2
+
 	} from '@lucide/svelte';
 
 	// shadcn-svelte imports
@@ -333,36 +337,16 @@
 			</li>
 		</ul>
 
-		<div
-			class="pt-3 mt-3 border-t border-border flex justify-between items-center px-1 text-muted-foreground"
-		>
-			<button
-				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'light' ? 'bg-muted text-foreground' : ''}"
-				on:click={() => applyTheme('light')}
-				title="Light Mode"
-			><Sun class="w-4 h-4" /></button>
 
-			<button
-				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'system' ? 'bg-muted text-foreground' : ''}"
-				on:click={() => applyTheme('system')}
-				title="System Theme"
-			><Laptop class="w-4 h-4" /></button>
 
-			<button
-				class="p-1.5 rounded-lg hover:bg-muted hover:text-foreground {currentTheme === 'dark' ? 'bg-muted text-foreground' : ''}"
-				on:click={() => applyTheme('dark')}
-				title="Dark Mode"
-			><Moon class="w-4 h-4" /></button>
-		</div>
-
-		<div class="pt-3 mt-3 border-t border-border flex justify-between items-center">
+		<div class="pt-3 mt-3 border-t border-border flex items-center">
             
             <Popover.Root>
                 <Popover.Trigger
                     class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     title="Activity Center"
                 >
-                    <User class="w-5 h-5" />
+                    <PackageCheck class="w-5 h-5" />
                     {#if activeTasksCount > 0}
                         <span class="absolute top-1 right-1 flex h-3 w-3">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -388,6 +372,55 @@
                             {/each}
                         </div>
                     {/if}
+                </Popover.Content>
+            </Popover.Root>
+            <Popover.Root>
+                <Popover.Trigger
+                    class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="User Settings"
+                >
+                    <User class="w-5 h-5" />
+                </Popover.Trigger>
+                
+                <Popover.Content side="right" align="end" class="w-64 p-3">
+                    <!-- Appearance -->
+                    <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Appearance</p>
+                    <div class="flex flex-col gap-0.5">
+                        <button
+                            class="flex items-center gap-3 px-2 py-2 rounded-lg text-sm w-full transition-colors
+                                {currentTheme === 'light' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                            on:click={() => applyTheme('light')}
+                        >
+                            <Sun class="w-4 h-4 shrink-0" />
+                            <span>Light</span>
+                            {#if currentTheme === 'light'}<Check class="w-4 h-4 ml-auto" />{/if}
+                        </button>
+                        <button
+                            class="flex items-center gap-3 px-2 py-2 rounded-lg text-sm w-full transition-colors
+                                {currentTheme === 'dark' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                            on:click={() => applyTheme('dark')}
+                        >
+                            <Moon class="w-4 h-4 shrink-0" />
+                            <span>Dark</span>
+                            {#if currentTheme === 'dark'}<Check class="w-4 h-4 ml-auto" />{/if}
+                        </button>
+                        <button
+                            class="flex items-center gap-3 px-2 py-2 rounded-lg text-sm w-full transition-colors
+                                {currentTheme === 'system' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                            on:click={() => applyTheme('system')}
+                        >
+                            <Laptop class="w-4 h-4 shrink-0" />
+                            <span>System</span>
+                            {#if currentTheme === 'system'}<Check class="w-4 h-4 ml-auto" />{/if}
+                        </button>
+                    </div>
+
+                    <!-- Divider — add new sections below here -->
+                    <div class="my-2 border-t border-border"></div>
+
+                    <!-- Data section (placeholder for backup/restore) -->
+                    <!-- <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Data</p> -->
+                    <!-- <div class="flex flex-col gap-0.5"> ... </div> -->
                 </Popover.Content>
             </Popover.Root>
 
