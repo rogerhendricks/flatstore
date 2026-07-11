@@ -22,6 +22,24 @@ export namespace flathub {
 	        this.developer = source["developer"];
 	    }
 	}
+	export class InstalledApp {
+	    appId: string;
+	    name: string;
+	    version: string;
+	    updateAvailable: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new InstalledApp(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.appId = source["appId"];
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.updateAvailable = source["updateAvailable"];
+	    }
+	}
 
 }
 

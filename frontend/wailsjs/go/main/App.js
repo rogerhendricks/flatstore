@@ -10,10 +10,22 @@ export function GetDiscoverApps() {
   return window['go']['main']['App']['GetDiscoverApps']();
 }
 
+export function GetInstalledApps() {
+  return window['go']['main']['App']['GetInstalledApps']();
+}
+
 export function InstallApp(arg1, arg2) {
   return window['go']['main']['App']['InstallApp'](arg1, arg2);
 }
 
 export function SearchApps(arg1) {
   return window['go']['main']['App']['SearchApps'](arg1);
+}
+
+export function UninstallApp(arg1, arg2) {
+  return window['go']['main']['App']['UninstallApp'](arg1, arg2);
+}
+
+export function UpdateApp(arg1, arg2) {
+  return window['go']['main']['App']['UpdateApp'](arg1, arg2);
 }

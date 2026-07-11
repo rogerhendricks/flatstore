@@ -20,7 +20,8 @@
 		HardDriveDownload,
 		Download,
 		Trash2,
-		RefreshCw
+		RefreshCw,
+		Loader2
 	} from '@lucide/svelte';
 
 	// shadcn-svelte imports
@@ -394,6 +395,7 @@
 
 	</aside>
 
+	{#if activeCategory !== 'Installed'}
 	<section class="flex-1 p-8 overflow-y-auto">
 		<header class="mb-8"><h1 class="text-3xl font-bold tracking-tight">{viewTitle}</h1></header>
 
@@ -439,19 +441,21 @@
 			{/if}
 		</div>
 	</section>
-	    <section class="flex-1 p-8 overflow-y-auto">
+	{/if}
+	{#if activeCategory === 'Installed'}
+	<section class="flex-1 p-8 overflow-y-auto">
         <header class="mb-8">
             <h1 class="text-3xl font-bold tracking-tight">{viewTitle}</h1>
         </header>
 
-        {#if activeCategory === 'Installed'}
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
                 {#if isLoading}
                     <p class="col-span-full text-muted-foreground">Scanning system...</p>
                 {:else if installedApps.length === 0}
                     <p class="col-span-full text-muted-foreground">No Flatpak applications installed.</p>
                 {:else}
                     {#each installedApps as app}
+                        {@const isBusy = !!appProgress[app.appId]}
                         <article class="flex items-center justify-between bg-card border border-border p-4 rounded-xl shadow-sm">
                             <div class="overflow-hidden pr-4">
                                 <h3 class="font-semibold text-sm truncate">{app.name}</h3>
@@ -460,26 +464,36 @@
                             <div class="flex gap-2 shrink-0">
                                 {#if app.updateAvailable}
                                     <button 
-                                        class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg transition-colors"
-                                        title="Update Available"
+                                        class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                        title={isBusy ? 'Updating...' : 'Update Available'}
+                                        disabled={isBusy}
                                         on:click={() => handleUpdate(app.appId)}
                                     >
-                                        <RefreshCw class="w-4 h-4" />
+                                        {#if isBusy}
+                                            <Loader2 class="w-4 h-4 animate-spin" />
+                                        {:else}
+                                            <RefreshCw class="w-4 h-4" />
+                                        {/if}
                                     </button>
                                 {/if}
                                 <button 
-                                    class="p-2 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 rounded-lg transition-colors"
-                                    title="Uninstall"
+                                    class="p-2 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    title={isBusy ? 'Removing...' : 'Uninstall'}
+                                    disabled={isBusy}
                                     on:click={() => handleUninstall(app.appId)}
                                 >
-                                    <Trash2 class="w-4 h-4" />
+                                    {#if isBusy && appProgress[app.appId]?.status === 'removing'}
+                                        <Loader2 class="w-4 h-4 animate-spin" />
+                                    {:else}
+                                        <Trash2 class="w-4 h-4" />
+                                    {/if}
                                 </button>
                             </div>
                         </article>
                     {/each}
                 {/if}
             </div>
-        {/if}
-    </section>
+        </section>
+	{/if}
 
 </main>

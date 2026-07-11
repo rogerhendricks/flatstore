@@ -81,3 +81,35 @@ func (a *App) InstallApp(appID string, installAsSystem bool) error {
 func (a *App) GetInstalledApps() ([]flathub.InstalledApp, error) {
 	return a.systemManager.ListInstalledApps(a.ctx)
 }
+
+func (a *App) UninstallApp(appID string, asSystem bool) error {
+	args := []string{"uninstall", appID}
+	if asSystem {
+		args = append(args, "--system")
+	} else {
+		args = append(args, "--user")
+	}
+	go func() {
+		err := a.systemManager.ExecuteWithProgress(a.ctx, appID, args...)
+		if err != nil {
+			println("Async uninstall failed for", appID, ":", err.Error())
+		}
+	}()
+	return nil
+}
+
+func (a *App) UpdateApp(appID string, asSystem bool) error {
+	args := []string{"update", appID}
+	if asSystem {
+		args = append(args, "--system")
+	} else {
+		args = append(args, "--user")
+	}
+	go func() {
+		err := a.systemManager.ExecuteWithProgress(a.ctx, appID, args...)
+		if err != nil {
+			println("Async update failed for", appID, ":", err.Error())
+		}
+	}()
+	return nil
+}
