@@ -22,6 +22,8 @@
 		Trash2,
 		RefreshCw,
 		PackageCheck,
+		CloudBackup,
+		SunMoon,
 		Loader2,
 		Settings,
 		Check,
@@ -345,14 +347,14 @@
 			<Popover.Root>
                 <Popover.Trigger
                     class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title="Settings"
+                    title="Theme"
                 >
-                    <Settings class="w-5 h-5" />
+                    <SunMoon class="w-5 h-5" />
                 </Popover.Trigger>
                 
                 <Popover.Content side="right" align="end" class="w-64 p-3">
-                    <!-- Appearance -->
-                    <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Appearance</p>
+                    <!-- Theme -->
+                    <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Theme</p>
                     <div class="flex flex-col gap-0.5">
                         <button
                             class="flex items-center gap-3 px-2 py-2 rounded-lg text-sm w-full transition-colors
@@ -382,13 +384,22 @@
                             {#if currentTheme === 'system'}<Check class="w-4 h-4 ml-auto" />{/if}
                         </button>
                     </div>
+                </Popover.Content>
+            </Popover.Root>
+			<Popover.Root>
+                <Popover.Trigger
+                    class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Backup/ Restore"
+                >
+                    <CloudBackup class="w-5 h-5" />
+                </Popover.Trigger>
+                
+                <Popover.Content side="right" align="end" class="w-64 p-3">
 
-                    <!-- Divider — add new sections below here -->
-                    <div class="my-2 border-t border-border"></div>
+                    <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Backup/ Restore</p>
+                    <div class="flex flex-col gap-0.5">
+                    </div>
 
-                    <!-- Data section (placeholder for backup/restore) -->
-                    <!-- <p class="text-xs font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">Data</p> -->
-                    <!-- <div class="flex flex-col gap-0.5"> ... </div> -->
                 </Popover.Content>
             </Popover.Root>
             <Popover.Root>
