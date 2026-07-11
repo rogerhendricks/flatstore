@@ -23,6 +23,7 @@
 		RefreshCw,
 		PackageCheck,
 		Loader2,
+		Settings,
 		Check,
         User2
 
@@ -341,45 +342,12 @@
 
 		<div class="pt-3 mt-3 border-t border-border flex items-center">
             
-            <Popover.Root>
+			<Popover.Root>
                 <Popover.Trigger
                     class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title="Activity Center"
+                    title="Settings"
                 >
-                    <PackageCheck class="w-5 h-5" />
-                    {#if activeTasksCount > 0}
-                        <span class="absolute top-1 right-1 flex h-3 w-3">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                        </span>
-                    {/if}
-                </Popover.Trigger>
-                
-                <Popover.Content side="right" align="end" class="w-80 p-4">
-                    <h4 class="font-medium text-sm mb-4">Background Tasks</h4>
-                    {#if Object.keys(appProgress).length === 0}
-                        <p class="text-sm text-muted-foreground text-center py-4">No active tasks.</p>
-                    {:else}
-                        <div class="space-y-4">
-                            {#each Object.entries(appProgress) as [id, prog]}
-                                <div class="space-y-2">
-                                    <div class="flex justify-between text-xs font-medium">
-                                        <span class="truncate pr-2">{prog.name}</span>
-                                        <span class="capitalize text-muted-foreground">{prog.status} {prog.percentage}%</span>
-                                    </div>
-                                    <Progress value={prog.percentage} class="h-2 {getProgressColorClass(prog.status)}" />
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
-                </Popover.Content>
-            </Popover.Root>
-            <Popover.Root>
-                <Popover.Trigger
-                    class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title="User Settings"
-                >
-                    <User class="w-5 h-5" />
+                    <Settings class="w-5 h-5" />
                 </Popover.Trigger>
                 
                 <Popover.Content side="right" align="end" class="w-64 p-3">
@@ -423,6 +391,40 @@
                     <!-- <div class="flex flex-col gap-0.5"> ... </div> -->
                 </Popover.Content>
             </Popover.Root>
+            <Popover.Root>
+                <Popover.Trigger
+                    class="relative p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Activity Center"
+                >
+                    <PackageCheck class="w-5 h-5" />
+                    {#if activeTasksCount > 0}
+                        <span class="absolute top-1 right-1 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                        </span>
+                    {/if}
+                </Popover.Trigger>
+                
+                <Popover.Content side="right" align="end" class="w-80 p-4">
+                    <h4 class="font-medium text-sm mb-4">Background Tasks</h4>
+                    {#if Object.keys(appProgress).length === 0}
+                        <p class="text-sm text-muted-foreground text-center py-4">No active tasks.</p>
+                    {:else}
+                        <div class="space-y-4">
+                            {#each Object.entries(appProgress) as [id, prog]}
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-xs font-medium">
+                                        <span class="truncate pr-2">{prog.name}</span>
+                                        <span class="capitalize text-muted-foreground">{prog.status} {prog.percentage}%</span>
+                                    </div>
+                                    <Progress value={prog.percentage} class="h-2 {getProgressColorClass(prog.status)}" />
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </Popover.Content>
+            </Popover.Root>
+
 
         </div>
 
