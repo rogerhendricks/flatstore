@@ -8,6 +8,12 @@ export function GetDiscoverApps():Promise<Array<flathub.AppSummary>>;
 
 export function GetInstalledApps():Promise<Array<flathub.InstalledApp>>;
 
+export function GetPopularApps():Promise<Array<flathub.AppSummary>>;
+
+export function GetPopularCreate():Promise<Array<flathub.AppSummary>>;
+
+export function GetPopularGames():Promise<Array<flathub.AppSummary>>;
+
 export function InstallApp(arg1:string,arg2:boolean):Promise<void>;
 
 export function SearchApps(arg1:string):Promise<Array<flathub.AppSummary>>;

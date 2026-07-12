@@ -14,6 +14,18 @@ export function GetInstalledApps() {
   return window['go']['main']['App']['GetInstalledApps']();
 }
 
+export function GetPopularApps() {
+  return window['go']['main']['App']['GetPopularApps']();
+}
+
+export function GetPopularCreate() {
+  return window['go']['main']['App']['GetPopularCreate']();
+}
+
+export function GetPopularGames() {
+  return window['go']['main']['App']['GetPopularGames']();
+}
+
 export function InstallApp(arg1, arg2) {
   return window['go']['main']['App']['InstallApp'](arg1, arg2);
 }

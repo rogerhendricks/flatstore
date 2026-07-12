@@ -113,3 +113,17 @@ func (a *App) UpdateApp(appID string, asSystem bool) error {
 	}()
 	return nil
 }
+
+// --- Popular / Discovery Methods ---
+
+func (a *App) GetPopularApps() ([]flathub.AppSummary, error) {
+	return a.flathub.FetchPopularApps()
+}
+
+func (a *App) GetPopularGames() ([]flathub.AppSummary, error) {
+	return a.flathub.FetchPopularGames()
+}
+
+func (a *App) GetPopularCreate() ([]flathub.AppSummary, error) {
+	return a.flathub.FetchPopularCreate()
+}

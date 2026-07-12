@@ -1,6 +1,6 @@
 <script lang="ts">
 	import './app.css';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	// lucide-svelte icons
 	import {
 		Sparkles,
@@ -27,7 +27,8 @@
 		Loader2,
 		Settings,
 		Check,
-        User2
+        User2,
+		TrendingUp
 
 	} from '@lucide/svelte';
 
@@ -90,6 +91,36 @@
 	let errorMessage: string = '';
 	let appProgress: Record<string, AppProgress> = {};
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	let discoverShowAll: boolean = false;
+
+	// Reactive sets for O(1) install-status lookups on the Discover page
+	$: installedAppIds = new Set<string>(installedApps.map(a => a.appId));
+	$: updateableAppIds = new Set<string>(installedApps.filter(a => a.updateAvailable).map(a => a.appId));
+
+	// --- Popular view state ---
+	type PopularTab = 'discover' | 'games' | 'create';
+	let popularTab: PopularTab = 'discover';
+	let heroApps: AppSummary[] = [];
+	let restApps: AppSummary[] = [];
+	let heroIndex: number = 0;
+	let heroSlideInterval: ReturnType<typeof setInterval> | null = null;
+
+	// Gradient definitions for hero cards (as inline CSS to avoid Tailwind purging).
+	const heroGradients: Array<{ from: string; via: string; to: string }> = [
+		{ from: '#7c3aed', via: '#9333ea', to: '#3b82f6' },  // violet → blue
+		{ from: '#f97316', via: '#ef4444', to: '#ec4899' },  // orange → pink
+		{ from: '#10b981', via: '#14b8a6', to: '#06b6d4' },  // emerald → cyan
+		{ from: '#3b82f6', via: '#6366f1', to: '#8b5cf6' },  // blue → purple
+		{ from: '#f43f5e', via: '#f97316', to: '#f59e0b' },  // rose → amber
+	];
+
+	// Placeholder featured promo cards — populated by external API in a future iteration.
+	interface FeaturedPromo { badge: string; title: string; subtitle: string; gradient: { from: string; to: string }; }
+	const featuredPromos: FeaturedPromo[] = [
+		{ badge: 'Featured', title: "Editor's Choice",   subtitle: 'Hand-picked highlights from our team',      gradient: { from: '#5b21b6', to: '#7c3aed' } },
+		{ badge: 'New',      title: 'Fresh Arrivals',      subtitle: 'Brand new apps just added to Flathub',     gradient: { from: '#9d174d', to: '#e11d48' } },
+		{ badge: 'Staff Pick', title: 'Must-Have Tools',   subtitle: 'Essential apps for your Linux desktop',    gradient: { from: '#075985', to: '#0ea5e9' } },
+	];
 
 
 	// Computed property: count active background tasks
@@ -140,6 +171,11 @@
 				};
 			});
 
+			// Pre-load installed apps so Discover page can show Get/Update buttons immediately
+			wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
+				installedApps = res || [];
+			}).catch(() => { /* silently ignore — discover still works without status */ });
+
 			loadDiscover();
 		};
 
@@ -154,6 +190,7 @@
 	async function loadDiscover(): Promise<void> {
 		activeCategory = 'Discover';
 		viewTitle = 'Discover';
+		discoverShowAll = false;
 		isLoading = true;
 		errorMessage = '';
 
@@ -195,6 +232,56 @@
             isLoading = false; 
         }
     }
+
+	// --- Popular view helpers ---
+	function stopHeroSlide(): void {
+		if (heroSlideInterval !== null) {
+			clearInterval(heroSlideInterval);
+			heroSlideInterval = null;
+		}
+	}
+
+	function startHeroSlide(): void {
+		stopHeroSlide();
+		if (heroApps.length > 1) {
+			heroSlideInterval = setInterval(() => {
+				heroIndex = (heroIndex + 1) % heroApps.length;
+			}, 4000);
+		}
+	}
+
+	async function loadPopular(tab: PopularTab = 'discover'): Promise<void> {
+		activeCategory = 'Popular';
+		viewTitle = 'Popular';
+		popularTab = tab;
+		heroIndex = 0;
+		searchQuery = '';
+		isLoading = true;
+		errorMessage = '';
+		stopHeroSlide();
+
+		try {
+			let allApps: AppSummary[] = [];
+			if (tab === 'discover') {
+				allApps = await wailsApp.GetPopularApps() || [];
+			} else if (tab === 'games') {
+				allApps = await wailsApp.GetPopularGames() || [];
+			} else {
+				allApps = await wailsApp.GetPopularCreate() || [];
+			}
+			heroApps = allApps.slice(0, 5);
+			restApps = allApps.slice(5);
+		} catch (err) {
+			errorMessage = String(err);
+		} finally {
+			isLoading = false;
+		}
+
+		startHeroSlide();
+	}
+
+	// Stop the carousel whenever the user navigates away from Popular.
+	$: if (activeCategory !== 'Popular') stopHeroSlide();
 
 	function handleSearch(): void {
 		clearTimeout(searchTimeout);
@@ -274,6 +361,11 @@
                     const newProgress = { ...appProgress };
                     delete newProgress[payload.appId];
                     appProgress = newProgress;
+
+                    // Refresh installed apps cache so Discover page buttons update
+                    wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
+                        installedApps = res || [];
+                    }).catch(console.error);
                     
                     // If we are looking at the Installed tab, refresh it automatically!
                     if (activeCategory === 'Installed') loadInstalled();
@@ -283,6 +375,10 @@
 
         loadDiscover();
     });
+
+	onDestroy(() => {
+		stopHeroSlide();
+	});
 </script>
 
 <main class="flex h-screen w-screen overflow-hidden bg-background text-foreground select-none"
@@ -313,7 +409,16 @@
 					on:click={loadDiscover}
 				><Sparkles class="w-4 h-4 shrink-0" />Discover</button>
 			</li>
-
+			<li>
+				<button 
+					class="w-full flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-lg transition-colors
+						{activeCategory === 'Popular' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+					on:click={() => loadPopular('discover')}
+				>
+					<TrendingUp class="w-4 h-4 shrink-0" />
+					Popular
+				</button>
+			</li>
 			{#each categories as cat}
 				<li>
 					<button
@@ -441,27 +546,238 @@
 
 	</aside>
 
-	{#if activeCategory !== 'Installed'}
-	<section class="flex-1 p-8 overflow-y-auto">
-		<header class="mb-8"><h1 class="text-3xl font-bold tracking-tight">{viewTitle}</h1></header>
+	{#if activeCategory !== 'Installed' && activeCategory !== 'Popular'}
+	<section class="flex-1 overflow-y-auto">
 
-		<div
-			class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6"
-		>
+		{#if activeCategory === 'Discover' && !discoverShowAll}
+		<!-- ─────────────────────────────────────────────────── -->
+		<!-- DISCOVER DASHBOARD                                   -->
+		<!-- ─────────────────────────────────────────────────── -->
+		<div class="px-8 pt-8 pb-10">
+			<h1 class="text-3xl font-bold tracking-tight mb-6">Discover</h1>
+
 			{#if isLoading}
-				<div
-					class="col-span-full text-center text-muted-foreground py-10"
-				>Loading applications...</div>
-			{:else if errorMessage}
-				<div
-					class="col-span-full text-center text-destructive py-10"
-				>Failed to load: {errorMessage}</div>
-			{:else if apps.length === 0}
-				<div
-					class="col-span-full text-center text-muted-foreground py-10"
-				>No applications found.</div>
+				<div class="flex items-center justify-center h-48 text-muted-foreground">
+					<Loader2 class="w-5 h-5 animate-spin mr-2" />Loading...
+				</div>
 			{:else}
-				{#each apps as app}
+				<!-- ── Featured promo cards (placeholder; external API in future) ── -->
+				<div class="grid grid-cols-3 gap-4 mb-8">
+					{#each featuredPromos as promo}
+					<div
+						class="relative rounded-2xl overflow-hidden h-44 cursor-pointer group"
+						style="background: linear-gradient(135deg, {promo.gradient.from}, {promo.gradient.to})"
+					>
+						<div class="absolute inset-0 p-5 flex flex-col justify-between text-white">
+							<span class="text-xs font-bold uppercase tracking-widest" style="opacity:0.7">{promo.badge}</span>
+							<div>
+								<h3 class="text-xl font-bold leading-tight">{promo.title}</h3>
+								<p class="text-sm mt-1" style="opacity:0.75">{promo.subtitle}</p>
+							</div>
+						</div>
+						<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-2xl"></div>
+					</div>
+					{/each}
+				</div>
+
+				<!-- ── Section header ── -->
+				<hr class="border-border mb-5" />
+				<div class="flex items-center justify-between mb-2">
+					<h2 class="text-lg font-bold tracking-tight">New Apps and Updates</h2>
+					<button
+						class="text-sm font-medium text-primary hover:underline"
+						on:click={() => discoverShowAll = true}
+					>See All</button>
+				</div>
+
+				<!-- ── 3 × 2 app columns (uniform fixed-height cells) ── -->
+				{#if apps.length === 0}
+					<p class="text-sm text-muted-foreground py-4">No applications found.</p>
+				{:else}
+					<div class="overflow-x-auto">
+					<div class="grid grid-cols-3 gap-3 min-w-[600px]">
+						{#each [0, 1, 2] as colIdx}
+						<div class="bg-card border border-border rounded-2xl overflow-hidden">
+							{#each apps.slice(colIdx * 2, colIdx * 2 + 2) as app, j}
+							{@const isBusy    = !!appProgress[app.flatpakAppId]}
+							{@const isInstd   = installedAppIds.has(app.flatpakAppId)}
+							{@const hasUpdate = updateableAppIds.has(app.flatpakAppId)}
+							<div class="flex flex-col justify-between px-3 py-2.5 h-24 hover:bg-muted/50 transition-colors {j > 0 ? 'border-t border-border' : ''}">
+								<div class="flex items-start gap-2.5">
+									<img
+										class="w-10 h-10 rounded-xl object-contain shrink-0"
+										src={app.iconUrl}
+										alt={app.name}
+										on:error={handleImageError}
+									/>
+									<div class="flex-1 overflow-hidden">
+										<p class="text-xs font-semibold leading-tight line-clamp-1 text-zinc-800 dark:text-zinc-200">{app.name}</p>
+										<p class="text-[11px] leading-snug mt-0.5 line-clamp-2 text-zinc-500 dark:text-zinc-400">{app.summary}</p>
+									</div>
+								</div>
+								<div class="flex justify-end">
+									{#if isBusy}
+										<div class="flex items-center gap-1">
+											<Loader2 class="w-3 h-3 animate-spin text-primary" />
+											<span class="text-[10px] text-muted-foreground">{appProgress[app.flatpakAppId]?.percentage}%</span>
+										</div>
+									{:else if hasUpdate}
+										<button
+											class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 transition-colors"
+											on:click={() => handleUpdate(app.flatpakAppId)}
+										>Update</button>
+									{:else if isInstd}
+										<Check class="w-4 h-4 text-green-500" />
+									{:else}
+										<button
+											class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+											on:click={() => handleInstall(app.flatpakAppId)}
+										>Get</button>
+									{/if}
+								</div>
+							</div>
+							{/each}
+						</div>
+						{/each}
+					</div>
+					</div>
+				{/if}
+			{/if}
+		</div>
+
+		{:else}
+		<!-- ─────────────────────────────────────────────────── -->
+		<!-- STANDARD GRID  (categories / search / see-all)      -->
+		<!-- ─────────────────────────────────────────────────── -->
+		<div class="p-8">
+			<header class="mb-8 flex items-center gap-3">
+				{#if activeCategory === 'Discover' && discoverShowAll}
+				<button
+					class="text-sm font-medium text-primary hover:underline shrink-0"
+					on:click={() => discoverShowAll = false}
+				>← Discover</button>
+				<span class="text-muted-foreground">/</span>
+				{/if}
+				<h1 class="text-3xl font-bold tracking-tight">
+					{discoverShowAll ? 'New Apps and Updates' : viewTitle}
+				</h1>
+			</header>
+
+			<div class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
+				{#if isLoading}
+					<div class="col-span-full text-center text-muted-foreground py-10">Loading applications...</div>
+				{:else if errorMessage}
+					<div class="col-span-full text-center text-destructive py-10">Failed to load: {errorMessage}</div>
+				{:else if apps.length === 0}
+					<div class="col-span-full text-center text-muted-foreground py-10">No applications found.</div>
+				{:else}
+					{#each apps as app}
+					<article class="flex flex-col bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+						<div class="flex items-center gap-4 mb-4">
+							<img
+								class="w-14 h-14 object-contain rounded-xl"
+								src={app.iconUrl}
+								alt={app.name}
+								on:error={handleImageError}
+							/>
+							<div>
+								<h3 class="font-semibold text-base leading-tight">{app.name}</h3>
+								<p class="text-xs text-muted-foreground mt-1">{app.developer || 'Flathub'}</p>
+							</div>
+						</div>
+						<p class="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1">{app.summary}</p>
+					</article>
+					{/each}
+				{/if}
+			</div>
+		</div>
+		{/if}
+
+	</section>
+	{/if}
+	{#if activeCategory === 'Popular'}
+	<section class="flex-1 overflow-y-auto">
+		<!-- Header + Tab Button Group -->
+		<div class="px-8 pt-8 pb-6">
+			<div class="inline-flex rounded-xl border border-border bg-muted p-1 gap-1">
+				<button
+					class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors
+						{popularTab === 'discover' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+					on:click={() => loadPopular('discover')}
+				>
+					<Sparkles class="w-3.5 h-3.5" />Discover
+				</button>
+				<button
+					class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors
+						{popularTab === 'games' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+					on:click={() => loadPopular('games')}
+				>
+					<Gamepad2 class="w-3.5 h-3.5" />Games
+				</button>
+				<button
+					class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors
+						{popularTab === 'create' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+					on:click={() => loadPopular('create')}
+				>
+					<Palette class="w-3.5 h-3.5" />Create
+				</button>
+			</div>
+		</div>
+
+		{#if isLoading}
+			<div class="flex items-center justify-center py-20 text-muted-foreground">
+				<Loader2 class="w-5 h-5 animate-spin mr-2" />Loading...
+			</div>
+		{:else if errorMessage}
+			<div class="text-center text-destructive py-20">Failed to load: {errorMessage}</div>
+		{:else}
+			<!-- Hero Carousel -->
+			{#if heroApps.length > 0}
+			<div class="relative mx-8 mb-8 rounded-3xl overflow-hidden" style="height: 280px;">
+				{#each heroApps as app, i}
+				{@const g = heroGradients[i % heroGradients.length]}
+				<div
+					class="absolute inset-0 flex items-center gap-8 p-8 transition-opacity duration-500
+						{i === heroIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}"
+					style="background: linear-gradient(135deg, {g.from}, {g.via}, {g.to})"
+				>
+					<img
+						class="w-28 h-28 rounded-2xl object-contain shrink-0 shadow-2xl"
+						src={app.iconUrl}
+						alt={app.name}
+						on:error={handleImageError}
+					/>
+					<div class="flex-1 text-white min-w-0">
+						<p class="text-xs font-bold uppercase tracking-widest mb-2" style="opacity:0.6">
+							#{i + 1} · Most Popular
+						</p>
+						<h2 class="text-3xl font-bold leading-tight truncate mb-1">{app.name}</h2>
+						<p class="text-sm mb-3" style="opacity:0.75">{app.developer || 'Flathub'}</p>
+						<p class="text-sm line-clamp-2 max-w-xl" style="opacity:0.65">{app.summary}</p>
+					</div>
+				</div>
+				{/each}
+
+				<!-- Pill dot navigation -->
+				<div class="absolute bottom-5 left-0 right-0 flex justify-center gap-2 z-20">
+					{#each heroApps as _, i}
+					<button
+						class="rounded-full bg-white transition-all duration-200
+							{i === heroIndex ? 'w-6 h-2.5 opacity-100' : 'w-2.5 h-2.5 opacity-40 hover:opacity-70'}"
+						on:click={() => { heroIndex = i; startHeroSlide(); }}
+						aria-label="Slide {i + 1}"
+					></button>
+					{/each}
+				</div>
+			</div>
+			{/if}
+
+			<!-- Rest of apps grid -->
+			{#if restApps.length > 0}
+			<div class="px-8 pb-8">
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">More Apps</h2>
+				<div class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
+					{#each restApps as app}
 					<article
 						class="flex flex-col bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
 					>
@@ -472,22 +788,21 @@
 								alt={app.name}
 								on:error={handleImageError}
 							/>
-
 							<div>
 								<h3 class="font-semibold text-base leading-tight">{app.name}</h3>
 								<p class="text-xs text-muted-foreground mt-1">{app.developer || 'Flathub'}</p>
 							</div>
 						</div>
-
-						<p
-							class="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1"
-						>{app.summary}</p>
+						<p class="text-sm text-muted-foreground line-clamp-3 flex-1">{app.summary}</p>
 					</article>
-				{/each}
+					{/each}
+				</div>
+			</div>
 			{/if}
-		</div>
+		{/if}
 	</section>
 	{/if}
+
 	{#if activeCategory === 'Installed'}
 	<section class="flex-1 p-8 overflow-y-auto">
         <header class="mb-8">

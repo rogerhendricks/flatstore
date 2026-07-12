@@ -20,9 +20,11 @@ func main() {
 	app := NewApp(flathubClient, catalogManager)
 
 	err := wails.Run(&options.App{
-		Title:  "FlatStore",
-		Width:  1024,
-		Height: 768,
+		Title:     "FlatStore",
+		Width:     1024,
+		Height:    768,
+		MinWidth:  960,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
