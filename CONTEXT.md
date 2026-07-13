@@ -244,3 +244,16 @@ go build ./...
 | Variable cell heights in grid | Use fixed `h-{n}` height + `line-clamp-{n}` + `overflow-hidden` on the cell div |
 | Flathub `/popular/last-month` returns 404 | Use `/collection/popular` instead |
 | `appProgress` badge shows on PackageCheck icon | The badge `<span>` inside `<Popover.Trigger>` needs `absolute` positioning; the trigger itself needs `relative` |
+
+
+2. What details are in AppStream for each app?
+AppStream (under the Freedesktop specification) stores rich application catalog metadata in XML format. For each component (application), it contains:
+
+Identification: Unique App ID (reverse-DNS style e.g., org.mozilla.firefox), Application name (<name>), Developer/Publisher (<developer_name>).
+Descriptions: Short summary (<summary>) and detailed rich-text description (<description>).
+System Category Mapping: List of application category tags (<categories>).
+Visuals: Cache/remote URLs for app icons (<icon>) and screenshot image galleries (<screenshots>).
+Technical Details: Project licenses (<project_license>), metadata licenses (<metadata_license>).
+Links: Clickable homepage, bug tracker, donation, or support links (<url>).
+Version/Release History: Versions and dates of releases (<releases>).
+Content Ratings (Age Ratings): An Open Age Rating Service (OARS) matrix (<content_rating>) describing levels of cartoon violence, realistic violence, mature language, etc.
