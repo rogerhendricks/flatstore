@@ -159,3 +159,12 @@ func (m *SystemManager) ListInstalledApps(ctx context.Context) ([]InstalledApp, 
 
 	return apps, nil
 }
+
+func (m *SystemManager) RunApp(appID string) error {
+	cmd := execCommandContext(context.Background(), "flatpak", "run", appID)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start application %s: %w", appID, err)
+	}
+	return nil
+}
+

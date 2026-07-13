@@ -184,8 +184,15 @@ func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
 		Developer:     comp.Developer,
 		Screenshots:   screenshots,
 		ReleaseDate:   releaseDate,
+		AgeRating:     comp.ContentRating.GetAgeRating(),
+		License:       comp.ProjectLicense,
 	}
 
 	return details, nil
 }
+
+func (a *App) OpenApp(appID string) error {
+	return a.systemManager.RunApp(appID)
+}
+
 

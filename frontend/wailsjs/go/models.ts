@@ -12,6 +12,8 @@ export namespace flathub {
 	    developer: string;
 	    screenshots: string[];
 	    releaseDate: string;
+	    ageRating: string;
+	    license: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppDetails(source);
@@ -30,6 +32,8 @@ export namespace flathub {
 	        this.developer = source["developer"];
 	        this.screenshots = source["screenshots"];
 	        this.releaseDate = source["releaseDate"];
+	        this.ageRating = source["ageRating"];
+	        this.license = source["license"];
 	    }
 	}
 	export class AppSummary {

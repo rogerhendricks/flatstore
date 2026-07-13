@@ -34,6 +34,10 @@ export function InstallApp(arg1, arg2) {
   return window['go']['main']['App']['InstallApp'](arg1, arg2);
 }
 
+export function OpenApp(arg1) {
+  return window['go']['main']['App']['OpenApp'](arg1);
+}
+
 export function SearchApps(arg1) {
   return window['go']['main']['App']['SearchApps'](arg1);
 }

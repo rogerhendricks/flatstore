@@ -18,6 +18,8 @@ export function GetPopularGames():Promise<Array<flathub.AppSummary>>;
 
 export function InstallApp(arg1:string,arg2:boolean):Promise<void>;
 
+export function OpenApp(arg1:string):Promise<void>;
+
 export function SearchApps(arg1:string):Promise<Array<flathub.AppSummary>>;
 
 export function UninstallApp(arg1:string,arg2:boolean):Promise<void>;

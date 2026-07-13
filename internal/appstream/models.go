@@ -17,17 +17,19 @@ type Catalog struct {
 
 // Component represents an individual application
 type Component struct {
-	Type        string          `xml:"type,attr"`
-	ID          string          `xml:"id"`
-	Name        LocalizedString `xml:"name"`
-	Summary     LocalizedString `xml:"summary"`
-	Developer   string          `xml:"developer_name"`
-	Description Description     `xml:"description"`
-	URLs        []URL           `xml:"url"`
-	Icons       []Icon          `xml:"icon"`
-	Categories  Categories      `xml:"categories"`
-	Releases    Releases        `xml:"releases"`
-	Screenshots []Screenshot    `xml:"screenshots>screenshot"`
+	Type           string          `xml:"type,attr"`
+	ID             string          `xml:"id"`
+	Name           LocalizedString `xml:"name"`
+	Summary        LocalizedString `xml:"summary"`
+	Developer      string          `xml:"developer_name"`
+	Description    Description     `xml:"description"`
+	URLs           []URL           `xml:"url"`
+	Icons          []Icon          `xml:"icon"`
+	Categories     Categories      `xml:"categories"`
+	Releases       Releases        `xml:"releases"`
+	Screenshots    []Screenshot    `xml:"screenshots>screenshot"`
+	ProjectLicense string          `xml:"project_license"`
+	ContentRating  *ContentRating  `xml:"content_rating"`
 }
 
 type LocalizedString struct {
@@ -62,6 +64,21 @@ type Description struct {
 }
 
 func (d *Description) UnmarshalXML(dec *xml.Decoder, start xml.StartElement) error {
+	isEnglish := true
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "lang" {
+			val := strings.ToLower(attr.Value)
+			if val != "" && val != "en" && !strings.HasPrefix(val, "en-") {
+				isEnglish = false
+			}
+		}
+	}
+
+	// If this tag is not English, and we already have a description, skip it
+	if !isEnglish && d.Raw != "" {
+		return dec.Skip()
+	}
+
 	var buf strings.Builder
 	depth := 0
 
@@ -167,4 +184,44 @@ type Releases struct {
 type Release struct {
 	Version string `xml:"version,attr"`
 	Date    string `xml:"date,attr"`
+}
+
+type ContentRating struct {
+	Type       string             `xml:"type,attr"`
+	Attributes []ContentAttribute `xml:"content_attribute"`
+}
+
+type ContentAttribute struct {
+	ID    string `xml:"id,attr"`
+	Value string `xml:",chardata"`
+}
+
+func (cr *ContentRating) GetAgeRating() string {
+	if cr == nil || len(cr.Attributes) == 0 {
+		return "Everyone"
+	}
+
+	maxLevel := "none"
+	for _, attr := range cr.Attributes {
+		val := strings.ToLower(attr.Value)
+		if val == "intense" {
+			maxLevel = "intense"
+			break
+		} else if val == "moderate" {
+			maxLevel = "moderate"
+		} else if val == "mild" && maxLevel == "none" {
+			maxLevel = "mild"
+		}
+	}
+
+	switch maxLevel {
+	case "intense":
+		return "18+"
+	case "moderate":
+		return "12+"
+	case "mild":
+		return "7+"
+	default:
+		return "Everyone"
+	}
 }

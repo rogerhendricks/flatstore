@@ -34,6 +34,8 @@ type AppDetails struct {
 	Developer     string   `json:"developer"`
 	Screenshots   []string `json:"screenshots"`
 	ReleaseDate   string   `json:"releaseDate"`
+	AgeRating     string   `json:"ageRating"`
+	License       string   `json:"license"`
 }
 
 
