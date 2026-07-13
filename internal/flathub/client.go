@@ -22,6 +22,21 @@ type AppSummary struct {
 	Developer    string `json:"developer"`
 }
 
+type AppDetails struct {
+	FlatpakAppId  string   `json:"flatpakAppId"`
+	Name          string   `json:"name"`
+	Summary       string   `json:"summary"`
+	Description   string   `json:"description"`
+	HomepageUrl   string   `json:"homepageUrl"`
+	BugtrackerUrl string   `json:"bugtrackerUrl"`
+	IconUrl       string   `json:"iconUrl"`
+	Version       string   `json:"version"`
+	Developer     string   `json:"developer"`
+	Screenshots   []string `json:"screenshots"`
+	ReleaseDate   string   `json:"releaseDate"`
+}
+
+
 // apiHit matches the raw JSON shape of a single record returned by the
 // Flathub v2 API (field names differ from AppSummary).
 type apiHit struct {

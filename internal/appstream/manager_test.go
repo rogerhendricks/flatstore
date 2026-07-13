@@ -13,7 +13,7 @@ func TestManagerIndexing(t *testing.T) {
 			{
 				Type: "desktop-application",
 				ID:   "org.mozilla.firefox",
-				Name: "Firefox",
+				Name: LocalizedString{Value: "Firefox"},
 				Categories: Categories{
 					List: []string{"Network", "WebBrowser"},
 				},
@@ -21,7 +21,7 @@ func TestManagerIndexing(t *testing.T) {
 			{
 				Type: "desktop-application",
 				ID:   "com.visualstudio.code",
-				Name: "VS Code",
+				Name: LocalizedString{Value: "VS Code"},
 				Categories: Categories{
 					List: []string{"Development"},
 				},
@@ -29,7 +29,7 @@ func TestManagerIndexing(t *testing.T) {
 			{
 				Type: "runtime", // Should be ignored by our indexer
 				ID:   "org.freedesktop.Platform",
-				Name: "Freedesktop Platform",
+				Name: LocalizedString{Value: "Freedesktop Platform"},
 			},
 		},
 	}
@@ -45,8 +45,8 @@ func TestManagerIndexing(t *testing.T) {
 		if !exists {
 			t.Fatalf("Expected Firefox to exist in index")
 		}
-		if app.Name != "Firefox" {
-			t.Errorf("Expected name Firefox, got %s", app.Name)
+		if app.Name.Value != "Firefox" {
+			t.Errorf("Expected name Firefox, got %s", app.Name.Value)
 		}
 
 		_, exists = manager.GetApp("org.freedesktop.Platform")
@@ -61,8 +61,8 @@ func TestManagerIndexing(t *testing.T) {
 		if len(devApps) != 1 {
 			t.Fatalf("Expected 1 dev app, got %d", len(devApps))
 		}
-		if devApps[0].Name != "VS Code" {
-			t.Errorf("Expected VS Code, got %s", devApps[0].Name)
+		if devApps[0].Name.Value != "VS Code" {
+			t.Errorf("Expected VS Code, got %s", devApps[0].Name.Value)
 		}
 
 		networkApps := manager.GetAppsByCategory("Network")

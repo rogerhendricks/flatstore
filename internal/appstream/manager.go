@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -100,7 +101,20 @@ func (m *Manager) buildIndexes(catalog *Catalog) {
 func (m *Manager) GetApp(id string) (*Component, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	app, exists := m.appsByID[id]
+
+	if app, exists := m.appsByID[id]; exists {
+		return app, true
+	}
+
+	// Try lookup fallback variations (with or without .desktop suffix)
+	var altID string
+	if strings.HasSuffix(id, ".desktop") {
+		altID = strings.TrimSuffix(id, ".desktop")
+	} else {
+		altID = id + ".desktop"
+	}
+
+	app, exists := m.appsByID[altID]
 	return app, exists
 }
 

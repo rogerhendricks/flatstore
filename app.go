@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"flatstore/internal/appstream"
 	"flatstore/internal/flathub"
@@ -127,3 +128,64 @@ func (a *App) GetPopularGames() ([]flathub.AppSummary, error) {
 func (a *App) GetPopularCreate() ([]flathub.AppSummary, error) {
 	return a.flathub.FetchPopularCreate()
 }
+
+func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
+	comp, exists := a.catalog.GetApp(appID)
+	if !exists {
+		return nil, fmt.Errorf("application %s not found in local catalog", appID)
+	}
+
+	var homepageURL string
+	var bugtrackerURL string
+	for _, u := range comp.URLs {
+		if u.Type == "homepage" {
+			homepageURL = u.Value
+		} else if u.Type == "bugtracker" {
+			bugtrackerURL = u.Value
+		}
+	}
+
+	var iconURL string
+	for _, icon := range comp.Icons {
+		if icon.Type == "remote" {
+			iconURL = icon.Value
+			break
+		}
+	}
+	if iconURL == "" {
+		iconURL = "https://dl.flathub.org/assets/default/settings.svg"
+	}
+
+	var screenshots []string
+	for _, s := range comp.Screenshots {
+		for _, img := range s.Images {
+			if img.Type == "source" && img.Value != "" {
+				screenshots = append(screenshots, img.Value)
+			}
+		}
+	}
+
+	var version string
+	var releaseDate string
+	if len(comp.Releases.List) > 0 {
+		version = comp.Releases.List[0].Version
+		releaseDate = comp.Releases.List[0].Date
+	}
+
+	details := &flathub.AppDetails{
+		FlatpakAppId:  comp.ID,
+		Name:          comp.Name.Value,
+		Summary:       comp.Summary.Value,
+		Description:   comp.Description.Raw,
+		HomepageUrl:   homepageURL,
+		BugtrackerUrl: bugtrackerURL,
+		IconUrl:       iconURL,
+		Version:       version,
+		Developer:     comp.Developer,
+		Screenshots:   screenshots,
+		ReleaseDate:   releaseDate,
+	}
+
+	return details, nil
+}
+

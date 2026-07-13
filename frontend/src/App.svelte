@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './app.css';
 	import { onMount, onDestroy } from 'svelte';
+	import { fly, fade } from 'svelte/transition';
 	// lucide-svelte icons
 	import {
 		Sparkles,
@@ -28,7 +29,9 @@
 		Settings,
 		Check,
         User2,
-		TrendingUp
+		TrendingUp,
+		X,
+		ExternalLink
 
 	} from '@lucide/svelte';
 
@@ -38,6 +41,20 @@
 
 	// --- Type Definitions ---
 	// (Keeping your existing interfaces: AppSummary, ProgressStatus, AppProgress, ProgressPayload)
+	interface AppDetails {
+		flatpakAppId: string;
+		name: string;
+		summary: string;
+		description: string;
+		homepageUrl: string;
+		bugtrackerUrl: string;
+		iconUrl: string;
+		version: string;
+		developer: string;
+		screenshots: string[];
+		releaseDate: string;
+	}
+
 	interface AppSummary {
 		flatpakAppId: string;
 		name: string;
@@ -150,41 +167,79 @@
 		localStorage.setItem('theme', theme);
 	}
 
-	// Initialize after DOM is ready (replaces svelte's onMount to avoid importing onMount)
-	if (typeof window !== 'undefined') {
-		const init = () => {
-			// Load saved theme or default to system
-			const savedTheme = localStorage.getItem('theme') as Theme || 'system';
+	let updateQueue: string[] = [];
+	let isUpdatingAll: boolean = false;
+	let currentQueueAppId: string | null = null;
+	let mediaQuery: MediaQueryList;
+	let themeListener: (e: MediaQueryListEvent) => void;
 
-			applyTheme(savedTheme);
+	$: updateableAppsCount = installedApps.filter(a => a.updateAvailable).length;
 
-			// Listen for OS-level theme changes if set to system
-			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-				if (currentTheme === 'system') applyTheme('system');
-			});
+	function handleUpdateAll(): void {
+		if (isUpdatingAll) return;
+		const toUpdate = installedApps
+			.filter(a => a.updateAvailable && !appProgress[a.appId])
+			.map(a => a.appId);
+		if (toUpdate.length === 0) return;
+		updateQueue = toUpdate;
+		isUpdatingAll = true;
+		processNextUpdate();
+	}
 
-			// Wails Events
-			runtime.EventsOn("flatpak:progress", (payload: ProgressPayload) => {
-				appProgress = {
-					...appProgress,
-					[payload.appId]: { status: payload.status, percentage: payload.percentage }
+	function processNextUpdate(): void {
+		if (updateQueue.length === 0) {
+			isUpdatingAll = false;
+			currentQueueAppId = null;
+			return;
+		}
+		currentQueueAppId = updateQueue[0];
+		handleUpdate(currentQueueAppId);
+	}
+
+	let selectedAppDetails: AppDetails | null = null;
+	let isDetailsOpen: boolean = false;
+	let isDetailsLoading: boolean = false;
+	let zoomedScreenshot: string | null = null;
+
+	async function openDetails(appId: string): Promise<void> {
+		isDetailsOpen = true;
+		isDetailsLoading = true;
+		selectedAppDetails = null;
+		zoomedScreenshot = null;
+		try {
+			selectedAppDetails = await wailsApp.GetAppDetails(appId);
+		} catch (err) {
+			console.error("Failed to load app details:", err);
+			const basicApp = apps.find(a => a.flatpakAppId === appId) || 
+			                  restApps.find(a => a.flatpakAppId === appId) ||
+			                  heroApps.find(a => a.flatpakAppId === appId);
+			
+			if (basicApp) {
+				selectedAppDetails = {
+					flatpakAppId: basicApp.flatpakAppId,
+					name: basicApp.name,
+					summary: basicApp.summary,
+					description: `<p>${basicApp.summary}</p><p class="text-xs text-muted-foreground mt-4">Full description is currently unavailable because the AppStream catalog is still syncing. You can still install or run this app.</p>`,
+					homepageUrl: "",
+					bugtrackerUrl: "",
+					iconUrl: basicApp.iconUrl,
+					version: basicApp.version || "Unknown",
+					developer: basicApp.developer || "Flathub",
+					screenshots: [],
+					releaseDate: ""
 				};
-			});
-
-			// Pre-load installed apps so Discover page can show Get/Update buttons immediately
-			wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
-				installedApps = res || [];
-			}).catch(() => { /* silently ignore — discover still works without status */ });
-
-			loadDiscover();
-		};
-
-		if (document.readyState === 'loading') {
-			window.addEventListener('DOMContentLoaded', init);
-		} else {
-			init();
+			}
+		} finally {
+			isDetailsLoading = false;
 		}
 	}
+
+	function closeDetails(): void {
+		isDetailsOpen = false;
+		selectedAppDetails = null;
+		zoomedScreenshot = null;
+	}
+
 
 	// --- Data Fetching Methods (unchanged) ---
 	async function loadDiscover(): Promise<void> {
@@ -342,42 +397,74 @@
 	}
 
 	onMount(() => {
-        runtime.EventsOn("flatpak:progress", (payload: ProgressPayload) => {
-            // Keep track of the app name for the popover UI if possible, fallback to ID
-            const appName = apps.find(a => a.flatpakAppId === payload.appId)?.name || payload.appId;
-            
-            appProgress = { 
-                ...appProgress, 
-                [payload.appId]: { 
-                    status: payload.status, 
-                    percentage: payload.percentage,
-                    name: appName
-                } 
-            };
+		// Load saved theme or default to system
+		const savedTheme = localStorage.getItem('theme') as Theme || 'system';
+		applyTheme(savedTheme);
 
-            // Clean up completed/error items from the popover after 5 seconds
-            if (payload.status === 'completed' || payload.status === 'error') {
-                setTimeout(() => {
-                    const newProgress = { ...appProgress };
-                    delete newProgress[payload.appId];
-                    appProgress = newProgress;
+		// Listen for OS-level theme changes if set to system
+		mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		themeListener = (e: MediaQueryListEvent) => {
+			if (currentTheme === 'system') {
+				applyTheme('system');
+			}
+		};
+		mediaQuery.addEventListener('change', themeListener);
 
-                    // Refresh installed apps cache so Discover page buttons update
-                    wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
-                        installedApps = res || [];
-                    }).catch(console.error);
-                    
-                    // If we are looking at the Installed tab, refresh it automatically!
-                    if (activeCategory === 'Installed') loadInstalled();
-                }, 5000);
-            }
-        });
+		// Listen for Wails events
+		runtime.EventsOn("flatpak:progress", (payload: ProgressPayload) => {
+			// Find name in apps or installedApps
+			const appName = apps.find(a => a.flatpakAppId === payload.appId)?.name || 
+			                installedApps.find(a => a.appId === payload.appId)?.name || 
+			                payload.appId;
 
-        loadDiscover();
-    });
+			appProgress = { 
+				...appProgress, 
+				[payload.appId]: { 
+					status: payload.status, 
+					percentage: payload.percentage,
+					name: appName
+				} 
+			};
+
+			// Handle queue advancement
+			if (isUpdatingAll && payload.appId === currentQueueAppId) {
+				if (payload.status === 'completed' || payload.status === 'error') {
+					updateQueue = updateQueue.filter(id => id !== currentQueueAppId);
+					processNextUpdate();
+				}
+			}
+
+			// Clean up completed/error items from the popover after 5 seconds
+			if (payload.status === 'completed' || payload.status === 'error') {
+				setTimeout(() => {
+					const newProgress = { ...appProgress };
+					delete newProgress[payload.appId];
+					appProgress = newProgress;
+
+					// Refresh installed apps cache so Discover page buttons update
+					wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
+						installedApps = res || [];
+					}).catch(console.error);
+					
+					// If we are looking at the Installed tab, refresh it automatically!
+					if (activeCategory === 'Installed') loadInstalled();
+				}, 5000);
+			}
+		});
+
+		// Pre-load installed apps so Discover page can show Get/Update buttons immediately
+		wailsApp.GetInstalledApps().then((res: InstalledApp[]) => {
+			installedApps = res || [];
+		}).catch(console.error);
+
+		loadDiscover();
+	});
 
 	onDestroy(() => {
 		stopHeroSlide();
+		if (mediaQuery && themeListener) {
+			mediaQuery.removeEventListener('change', themeListener);
+		}
 	});
 </script>
 
@@ -603,7 +690,7 @@
 							{@const isInstd   = installedAppIds.has(app.flatpakAppId)}
 							{@const hasUpdate = updateableAppIds.has(app.flatpakAppId)}
 							<div class="flex flex-col justify-between px-3 py-2.5 h-24 hover:bg-muted/50 transition-colors {j > 0 ? 'border-t border-border' : ''}">
-								<div class="flex items-start gap-2.5">
+								<div class="flex items-start gap-2.5 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>
 									<img
 										class="w-10 h-10 rounded-xl object-contain shrink-0"
 										src={app.iconUrl}
@@ -672,20 +759,49 @@
 					<div class="col-span-full text-center text-muted-foreground py-10">No applications found.</div>
 				{:else}
 					{#each apps as app}
-					<article class="flex flex-col bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-						<div class="flex items-center gap-4 mb-4">
+					{@const isBusy    = !!appProgress[app.flatpakAppId]}
+					{@const isInstd   = installedAppIds.has(app.flatpakAppId)}
+					{@const hasUpdate = updateableAppIds.has(app.flatpakAppId)}
+					{@const isQueued  = isUpdatingAll && updateQueue.includes(app.flatpakAppId) && app.flatpakAppId !== currentQueueAppId}
+					<article class="flex flex-col h-52 bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+						<div class="flex items-center gap-4 mb-3 shrink-0 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>
 							<img
-								class="w-14 h-14 object-contain rounded-xl"
+								class="w-14 h-14 object-contain rounded-xl shrink-0"
 								src={app.iconUrl}
 								alt={app.name}
 								on:error={handleImageError}
 							/>
-							<div>
-								<h3 class="font-semibold text-base leading-tight">{app.name}</h3>
-								<p class="text-xs text-muted-foreground mt-1">{app.developer || 'Flathub'}</p>
+							<div class="min-w-0">
+								<h3 class="font-semibold text-base leading-tight truncate">{app.name}</h3>
+								<p class="text-xs text-muted-foreground mt-1 truncate">{app.developer || 'Flathub'}</p>
 							</div>
 						</div>
-						<p class="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1">{app.summary}</p>
+						<p class="text-sm text-muted-foreground line-clamp-3 flex-1 leading-snug mb-3 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>{app.summary}</p>
+						<div class="flex justify-end mt-auto pt-2 shrink-0">
+							{#if isQueued}
+								<div class="flex items-center gap-1.5">
+									<Loader2 class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+									<span class="text-xs text-muted-foreground">Queued</span>
+								</div>
+							{:else if isBusy}
+								<div class="flex items-center gap-1.5">
+									<Loader2 class="w-3.5 h-3.5 animate-spin text-primary" />
+									<span class="text-xs text-muted-foreground">{appProgress[app.flatpakAppId]?.percentage}%</span>
+								</div>
+							{:else if hasUpdate}
+								<button
+									class="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 transition-colors"
+									on:click={() => handleUpdate(app.flatpakAppId)}
+								>Update</button>
+							{:else if isInstd}
+								<Check class="w-4 h-4 text-green-500" />
+							{:else}
+								<button
+									class="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+									on:click={() => handleInstall(app.flatpakAppId)}
+								>Get</button>
+							{/if}
+						</div>
 					</article>
 					{/each}
 				{/if}
@@ -742,12 +858,13 @@
 					style="background: linear-gradient(135deg, {g.from}, {g.via}, {g.to})"
 				>
 					<img
-						class="w-28 h-28 rounded-2xl object-contain shrink-0 shadow-2xl"
+						class="w-28 h-28 rounded-2xl object-contain shrink-0 shadow-2xl cursor-pointer"
 						src={app.iconUrl}
 						alt={app.name}
 						on:error={handleImageError}
+						on:click={() => openDetails(app.flatpakAppId)}
 					/>
-					<div class="flex-1 text-white min-w-0">
+					<div class="flex-1 text-white min-w-0 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>
 						<p class="text-xs font-bold uppercase tracking-widest mb-2" style="opacity:0.6">
 							#{i + 1} · Most Popular
 						</p>
@@ -778,22 +895,49 @@
 				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">More Apps</h2>
 				<div class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
 					{#each restApps as app}
-					<article
-						class="flex flex-col bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-					>
-						<div class="flex items-center gap-4 mb-4">
+					{@const isBusy    = !!appProgress[app.flatpakAppId]}
+					{@const isInstd   = installedAppIds.has(app.flatpakAppId)}
+					{@const hasUpdate = updateableAppIds.has(app.flatpakAppId)}
+					{@const isQueued  = isUpdatingAll && updateQueue.includes(app.flatpakAppId) && app.flatpakAppId !== currentQueueAppId}
+					<article class="flex flex-col h-52 bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+						<div class="flex items-center gap-4 mb-3 shrink-0 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>
 							<img
-								class="w-14 h-14 object-contain rounded-xl"
+								class="w-14 h-14 object-contain rounded-xl shrink-0"
 								src={app.iconUrl}
 								alt={app.name}
 								on:error={handleImageError}
 							/>
-							<div>
-								<h3 class="font-semibold text-base leading-tight">{app.name}</h3>
-								<p class="text-xs text-muted-foreground mt-1">{app.developer || 'Flathub'}</p>
+							<div class="min-w-0">
+								<h3 class="font-semibold text-base leading-tight truncate">{app.name}</h3>
+								<p class="text-xs text-muted-foreground mt-1 truncate">{app.developer || 'Flathub'}</p>
 							</div>
 						</div>
-						<p class="text-sm text-muted-foreground line-clamp-3 flex-1">{app.summary}</p>
+						<p class="text-sm text-muted-foreground line-clamp-3 flex-1 leading-snug mb-3 cursor-pointer" on:click={() => openDetails(app.flatpakAppId)}>{app.summary}</p>
+						<div class="flex justify-end mt-auto pt-2 shrink-0">
+							{#if isQueued}
+								<div class="flex items-center gap-1.5">
+									<Loader2 class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+									<span class="text-xs text-muted-foreground">Queued</span>
+								</div>
+							{:else if isBusy}
+								<div class="flex items-center gap-1.5">
+									<Loader2 class="w-3.5 h-3.5 animate-spin text-primary" />
+									<span class="text-xs text-muted-foreground">{appProgress[app.flatpakAppId]?.percentage}%</span>
+								</div>
+							{:else if hasUpdate}
+								<button
+									class="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 transition-colors"
+									on:click={() => handleUpdate(app.flatpakAppId)}
+								>Update</button>
+							{:else if isInstd}
+								<Check class="w-4 h-4 text-green-500" />
+							{:else}
+								<button
+									class="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+									on:click={() => handleInstall(app.flatpakAppId)}
+								>Get</button>
+							{/if}
+						</div>
 					</article>
 					{/each}
 				</div>
@@ -802,11 +946,25 @@
 		{/if}
 	</section>
 	{/if}
-
 	{#if activeCategory === 'Installed'}
-	<section class="flex-1 p-8 overflow-y-auto">
-        <header class="mb-8">
+		<section class="flex-1 p-8 overflow-y-auto">
+        <header class="mb-8 flex items-center justify-between">
             <h1 class="text-3xl font-bold tracking-tight">{viewTitle}</h1>
+			{#if updateableAppsCount > 0}
+				<button 
+					class="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed animate-fade-in"
+					disabled={isUpdatingAll || activeTasksCount > 0}
+					on:click={handleUpdateAll}
+				>
+					{#if isUpdatingAll}
+						<Loader2 class="w-4 h-4 animate-spin" />
+						<span>Updating All ({updateQueue.length} remaining)</span>
+					{:else}
+						<RefreshCw class="w-4 h-4" />
+						<span>Update All ({updateableAppsCount})</span>
+					{/if}
+				</button>
+			{/if}
         </header>
 
         <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
@@ -817,20 +975,29 @@
                 {:else}
                     {#each installedApps as app}
                         {@const isBusy = !!appProgress[app.appId]}
+                        {@const isQueued = isUpdatingAll && updateQueue.includes(app.appId) && app.appId !== currentQueueAppId}
                         <article class="flex items-center justify-between bg-card border border-border p-4 rounded-xl shadow-sm">
-                            <div class="overflow-hidden pr-4">
+                            <div class="overflow-hidden pr-4 flex-1 cursor-pointer" on:click={() => openDetails(app.appId)}>
                                 <h3 class="font-semibold text-sm truncate">{app.name}</h3>
-                                <p class="text-xs text-muted-foreground">Version: {app.version}</p>
+                                <p class="text-xs text-muted-foreground">
+									{#if isQueued}
+										<span class="text-blue-500 font-medium animate-pulse">Queued for update...</span>
+									{:else if isBusy}
+										<span class="text-primary font-medium">{appProgress[app.appId]?.status}... {appProgress[app.appId]?.percentage}%</span>
+									{:else}
+										Version: {app.version}
+									{/if}
+								</p>
                             </div>
                             <div class="flex gap-2 shrink-0">
                                 {#if app.updateAvailable}
                                     <button 
                                         class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                        title={isBusy ? 'Updating...' : 'Update Available'}
-                                        disabled={isBusy}
+                                        title={isQueued ? 'Queued...' : isBusy ? 'Updating...' : 'Update Available'}
+                                        disabled={isBusy || isQueued}
                                         on:click={() => handleUpdate(app.appId)}
                                     >
-                                        {#if isBusy}
+                                        {#if isBusy || isQueued}
                                             <Loader2 class="w-4 h-4 animate-spin" />
                                         {:else}
                                             <RefreshCw class="w-4 h-4" />
@@ -840,7 +1007,7 @@
                                 <button 
                                     class="p-2 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                     title={isBusy ? 'Removing...' : 'Uninstall'}
-                                    disabled={isBusy}
+                                    disabled={isBusy || isQueued}
                                     on:click={() => handleUninstall(app.appId)}
                                 >
                                     {#if isBusy && appProgress[app.appId]?.status === 'removing'}
@@ -857,4 +1024,201 @@
         </section>
 	{/if}
 
+	{#if isDetailsOpen}
+		<!-- Backdrop overlay -->
+		<div 
+			class="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+			on:click={closeDetails}
+			transition:fade={{ duration: 200 }}
+		></div>
+
+		<!-- Side-sheet container -->
+		<div 
+			class="fixed top-0 right-0 z-50 h-screen w-[460px] max-w-full bg-background border-l border-border shadow-2xl flex flex-col"
+			transition:fly={{ x: 460, duration: 300 }}
+		>
+			<!-- Header -->
+			<div class="flex items-center justify-between p-4 border-b border-border shrink-0">
+				<button 
+					class="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+					on:click={closeDetails}
+					title="Close"
+				>
+					<X class="w-5 h-5" />
+				</button>
+				<span class="text-xs font-semibold text-muted-foreground uppercase tracking-widest">App Details</span>
+				<div class="w-8 h-8"></div> <!-- balanced spacer -->
+			</div>
+
+			<!-- Scrollable Details -->
+			<div class="flex-1 overflow-y-auto p-6 space-y-6">
+				{#if isDetailsLoading}
+					<div class="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+						<Loader2 class="w-8 h-8 animate-spin text-primary" />
+						<p class="text-sm">Loading details...</p>
+					</div>
+				{:else if selectedAppDetails}
+					{@const app = selectedAppDetails}
+					{@const isBusy = !!appProgress[app.flatpakAppId]}
+					{@const isInstd = installedAppIds.has(app.flatpakAppId)}
+					{@const hasUpdate = updateableAppIds.has(app.flatpakAppId)}
+					{@const isQueued = isUpdatingAll && updateQueue.includes(app.flatpakAppId) && app.flatpakAppId !== currentQueueAppId}
+
+					<!-- Header Block -->
+					<div class="flex items-start gap-4">
+						<img 
+							class="w-20 h-20 rounded-2xl object-contain bg-card border border-border p-2 shrink-0"
+							src={app.iconUrl} 
+							alt={app.name} 
+							on:error={handleImageError}
+						/>
+						<div class="min-w-0 flex-1">
+							<h2 class="text-xl font-bold tracking-tight leading-tight truncate text-foreground">{app.name}</h2>
+							<p class="text-xs text-primary font-semibold mt-0.5 truncate">{app.developer || 'Flathub'}</p>
+							<p class="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{app.summary}</p>
+						</div>
+					</div>
+
+					<!-- Actions Bar -->
+					<div class="flex gap-2 shrink-0">
+						{#if isQueued}
+							<button 
+								class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-muted text-muted-foreground cursor-not-allowed border border-border"
+								disabled
+							>
+								<Loader2 class="w-4 h-4 animate-spin" />
+								<span>Queued for Update</span>
+							</button>
+						{:else if isBusy}
+							<div class="flex-1 flex flex-col gap-1.5 bg-muted/50 p-2.5 rounded-xl border border-border">
+								<div class="flex justify-between text-xs font-semibold px-1">
+									<span class="capitalize text-primary">{appProgress[app.flatpakAppId]?.status}</span>
+									<span>{appProgress[app.flatpakAppId]?.percentage}%</span>
+								</div>
+								<Progress value={appProgress[app.flatpakAppId]?.percentage} class="h-2 {getProgressColorClass(appProgress[app.flatpakAppId]?.status)}" />
+							</div>
+						{:else if hasUpdate}
+							<button 
+								class="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors"
+								on:click={() => handleUpdate(app.flatpakAppId)}
+							>
+								Update to {app.version}
+							</button>
+						{:else if isInstd}
+							<div class="flex gap-2 w-full">
+								<div 
+									class="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex items-center justify-center gap-1.5"
+								>
+									<Check class="w-4 h-4" />
+									<span>Installed</span>
+								</div>
+								<button 
+									class="px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-xl transition-colors text-sm font-semibold"
+									on:click={() => handleUninstall(app.flatpakAppId)}
+								>
+									Uninstall
+								</button>
+							</div>
+						{:else}
+							<button 
+								class="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-colors"
+								on:click={() => handleInstall(app.flatpakAppId)}
+							>
+								Install
+							</button>
+						{/if}
+					</div>
+
+					<!-- Screenshot Carousel -->
+					{#if app.screenshots && app.screenshots.length > 0}
+						<div class="space-y-2">
+							<h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Screenshots</h3>
+							<div class="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-rounded">
+								{#each app.screenshots as src}
+									<img 
+										class="h-44 rounded-xl border border-border object-cover cursor-zoom-in hover:brightness-95 transition-all shadow-sm shrink-0"
+										src={src} 
+										alt="Screenshot of {app.name}"
+										on:click={() => zoomedScreenshot = src}
+									/>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- HTML Description -->
+					<div class="space-y-2">
+						<h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">About</h3>
+						<div class="text-sm leading-relaxed text-muted-foreground space-y-3 prose dark:prose-invert max-w-none">
+							{@html app.description}
+						</div>
+					</div>
+
+					<!-- Metadata -->
+					<div class="border-t border-border pt-5 space-y-4">
+						<h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Information</h3>
+						<div class="grid grid-cols-2 gap-y-4 gap-x-2 text-xs">
+							<div>
+								<p class="text-muted-foreground font-medium mb-0.5">Developer</p>
+								<p class="font-semibold truncate text-foreground">{app.developer || 'Flathub'}</p>
+							</div>
+							<div>
+								<p class="text-muted-foreground font-medium mb-0.5">Version</p>
+								<p class="font-semibold truncate text-foreground">{app.version || 'Unknown'}</p>
+							</div>
+							{#if app.releaseDate}
+								<div>
+									<p class="text-muted-foreground font-medium mb-0.5">Released On</p>
+									<p class="font-semibold truncate text-foreground">{app.releaseDate}</p>
+								</div>
+							{/if}
+							<div>
+								<p class="text-muted-foreground font-medium mb-0.5">Flatpak ID</p>
+								<p class="font-semibold truncate text-foreground select-all" title="Application ID">{app.flatpakAppId}</p>
+							</div>
+							{#if app.homepageUrl}
+								<div class="col-span-2">
+									<p class="text-muted-foreground font-medium mb-0.5">Project Links</p>
+									<div class="flex flex-wrap gap-4 mt-1">
+										<a 
+											href={app.homepageUrl} 
+											target="_blank" 
+											class="flex items-center gap-1 text-primary hover:underline font-semibold"
+										>
+											<span>Homepage</span>
+											<ExternalLink class="w-3.5 h-3.5" />
+										</a>
+										{#if app.bugtrackerUrl}
+											<a 
+												href={app.bugtrackerUrl} 
+												target="_blank" 
+												class="flex items-center gap-1 text-primary hover:underline font-semibold"
+											>
+												<span>Bug Tracker</span>
+												<ExternalLink class="w-3.5 h-3.5" />
+											</a>
+										{/if}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	{#if zoomedScreenshot}
+		<div 
+			class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-8 cursor-zoom-out"
+			on:click={() => zoomedScreenshot = null}
+			transition:fade={{ duration: 150 }}
+		>
+			<img 
+				class="max-w-full max-h-full rounded-xl object-contain shadow-2xl border border-white/10"
+				src={zoomedScreenshot} 
+				alt="Zoomed Screenshot"
+			/>
+		</div>
+	{/if}
 </main>
