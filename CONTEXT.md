@@ -252,6 +252,7 @@ These were identified during development and not yet implemented:
 
 7. ~~**Popular page "More Apps" grid lacks uniform cell sizing**~~ — **DONE.** Extracted the Discover dashboard's 3-column fixed-height layout into a shared `lib/components/CompactAppGrid.svelte`, which evenly chunks any `apps` array into 3 columns (`Math.ceil(length/3)` per column) of `AppCardCompact.svelte` rows. `PopularView.svelte`'s "More Apps" section and `DiscoverDashboard.svelte`'s "New Apps and Updates" section both now use this same component, so cell sizing is uniform across both pages.
 
+8. ~~**Add Developer Link**~~ In the AppDetailsPage.svelte the developer needs to be a link to a page showing all apps from that developer
 ---
 
 ## Build & Dev Commands
