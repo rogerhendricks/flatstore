@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Loader2 } from '@lucide/svelte';
+	import { LoaderCircle } from '@lucide/svelte';
 	import { featuredPromos } from '$lib/constants';
 	import { apps, isLoading, discoverShowAll } from '$lib/stores/appStore';
 	import CompactAppGrid from '$lib/components/CompactAppGrid.svelte';
@@ -13,7 +13,7 @@
 
 	{#if $isLoading}
 		<div class="flex items-center justify-center h-48 text-muted-foreground">
-			<Loader2 class="w-5 h-5 animate-spin mr-2" />Loading...
+			<LoaderCircle class="w-5 h-5 animate-spin mr-2" />Loading...
 		</div>
 	{:else}
 		<!-- ── Featured promo cards (placeholder; external API in future) ── -->

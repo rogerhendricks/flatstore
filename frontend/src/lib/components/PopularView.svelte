@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Sparkles, Gamepad2, Palette, Loader2 } from '@lucide/svelte';
+	import { Sparkles, Gamepad2, Palette, LoaderCircle } from '@lucide/svelte';
 	import { heroGradients } from '$lib/constants';
 	import {
 		popularTab,
@@ -46,7 +46,7 @@
 
 	{#if $isLoading}
 		<div class="flex items-center justify-center py-20 text-muted-foreground">
-			<Loader2 class="w-5 h-5 animate-spin mr-2" />Loading...
+			<LoaderCircle class="w-5 h-5 animate-spin mr-2" />Loading...
 		</div>
 	{:else if $errorMessage}
 		<div class="text-center text-destructive py-20">Failed to load: {$errorMessage}</div>

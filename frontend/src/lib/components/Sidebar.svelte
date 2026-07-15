@@ -10,8 +10,8 @@
 		CloudBackup,
 		PackageCheck,
 		Check,
-		Loader2,
-		AlertCircle
+		LoaderCircle,
+		CircleAlert
 	} from '@lucide/svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Progress } from '$lib/components/ui/progress';
@@ -46,12 +46,12 @@
 
 	{#if $catalogStatus === 'syncing'}
 		<div class="flex items-center gap-1.5 px-2 mb-3 text-[11px] text-muted-foreground" title="The AppStream catalog is downloading in the background. App details may show limited info until it finishes.">
-			<Loader2 class="w-3 h-3 animate-spin shrink-0" />
+			<LoaderCircle class="w-3 h-3 animate-spin shrink-0" />
 			<span class="truncate">Syncing app catalog...</span>
 		</div>
 	{:else if $catalogStatus === 'error'}
 		<div class="flex items-center gap-1.5 px-2 mb-3 text-[11px] text-amber-600 dark:text-amber-400" title={$catalogError}>
-			<AlertCircle class="w-3 h-3 shrink-0" />
+			<CircleAlert class="w-3 h-3 shrink-0" />
 			<span class="truncate">Catalog sync failed</span>
 		</div>
 	{/if}

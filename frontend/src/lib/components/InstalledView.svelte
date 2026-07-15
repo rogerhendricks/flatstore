@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Loader2, RefreshCw, Trash2 } from '@lucide/svelte';
+	import { LoaderCircle, RefreshCw, Trash2 } from '@lucide/svelte';
 	import {
 		installedApps,
 		isLoading,
@@ -27,7 +27,7 @@
 				on:click={handleUpdateAll}
 			>
 				{#if $isUpdatingAll}
-					<Loader2 class="w-4 h-4 animate-spin" />
+					<LoaderCircle class="w-4 h-4 animate-spin" />
 					<span>Updating All ({$updateQueue.length} remaining)</span>
 				{:else}
 					<RefreshCw class="w-4 h-4" />
@@ -68,7 +68,7 @@
 								on:click={() => handleUpdate(app.appId)}
 							>
 								{#if isBusy || isQueued}
-									<Loader2 class="w-4 h-4 animate-spin" />
+									<LoaderCircle class="w-4 h-4 animate-spin" />
 								{:else}
 									<RefreshCw class="w-4 h-4" />
 								{/if}
@@ -81,7 +81,7 @@
 							on:click={() => handleUninstall(app.appId)}
 						>
 							{#if isBusy && $appProgress[app.appId]?.status === 'removing'}
-								<Loader2 class="w-4 h-4 animate-spin" />
+								<LoaderCircle class="w-4 h-4 animate-spin" />
 							{:else}
 								<Trash2 class="w-4 h-4" />
 							{/if}

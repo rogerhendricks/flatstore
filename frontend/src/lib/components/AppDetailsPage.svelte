@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { Loader2, ChevronLeft, ExternalLink } from '@lucide/svelte';
+	import { LoaderCircle, ChevronLeft, ExternalLink } from '@lucide/svelte';
 	import { Progress } from '$lib/components/ui/progress';
 	import {
 		selectedAppDetails,
@@ -25,7 +25,7 @@
 <section class="flex-1 overflow-y-auto p-8 bg-background" transition:fade={{ duration: 150 }}>
 	{#if $isDetailsLoading}
 		<div class="flex flex-col items-center justify-center h-[80vh] text-muted-foreground gap-3">
-			<Loader2 class="w-8 h-8 animate-spin text-primary" />
+			<LoaderCircle class="w-8 h-8 animate-spin text-primary" />
 			<p class="text-sm">Loading application details...</p>
 		</div>
 	{:else if $selectedAppDetails}
@@ -66,7 +66,7 @@
 					class="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-sm font-semibold bg-muted text-muted-foreground cursor-not-allowed border border-border"
 					disabled
 				>
-					<Loader2 class="w-4 h-4 animate-spin text-muted-foreground" />
+					<LoaderCircle class="w-4 h-4 animate-spin text-muted-foreground" />
 					<span>Queued</span>
 				</button>
 			{:else if isBusy}
@@ -138,10 +138,6 @@
 					<p class="text-sm font-bold text-foreground truncate">{app.releaseDate}</p>
 				</div>
 			{/if}
-			<div>
-				<p class="text-muted-foreground font-semibold uppercase tracking-wider mb-1">Flatpak ID</p>
-				<p class="text-sm font-bold text-foreground truncate select-all">{app.flatpakAppId}</p>
-			</div>
 			<div>
 				<p class="text-muted-foreground font-semibold uppercase tracking-wider mb-1">Age Rating</p>
 				<p class="text-sm font-bold text-foreground truncate">{app.ageRating || 'Everyone'}</p>
