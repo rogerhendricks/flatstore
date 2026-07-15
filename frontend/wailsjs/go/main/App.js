@@ -34,6 +34,10 @@ export function InstallApp(arg1, arg2) {
   return window['go']['main']['App']['InstallApp'](arg1, arg2);
 }
 
+export function IsCatalogReady() {
+  return window['go']['main']['App']['IsCatalogReady']();
+}
+
 export function OpenApp(arg1) {
   return window['go']['main']['App']['OpenApp'](arg1);
 }

@@ -195,4 +195,9 @@ func (a *App) OpenApp(appID string) error {
 	return a.systemManager.RunApp(appID)
 }
 
-
+// IsCatalogReady reports whether the AppStream catalog has finished syncing.
+// Useful for the frontend to check state on mount, in case it missed the
+// "catalog:ready"/"catalog:error" events emitted during startup().
+func (a *App) IsCatalogReady() bool {
+	return a.catalog.IsReady()
+}
