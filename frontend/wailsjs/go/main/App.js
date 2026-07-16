@@ -10,6 +10,10 @@ export function GetAppsByCategory(arg1) {
   return window['go']['main']['App']['GetAppsByCategory'](arg1);
 }
 
+export function GetAppsByDeveloper(arg1) {
+  return window['go']['main']['App']['GetAppsByDeveloper'](arg1);
+}
+
 export function GetDiscoverApps() {
   return window['go']['main']['App']['GetDiscoverApps']();
 }

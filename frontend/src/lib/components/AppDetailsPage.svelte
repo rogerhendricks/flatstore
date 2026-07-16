@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { LoaderCircle, ChevronLeft, ExternalLink } from '@lucide/svelte';
+	import { LoaderCircle, ChevronLeft, ExternalLink, BadgeCheck } from '@lucide/svelte';
 	import { Progress } from '$lib/components/ui/progress';
 	import {
 		selectedAppDetails,
@@ -18,7 +18,8 @@
 		handleUninstall,
 		handleInstall,
 		getProgressColorClass,
-		zoomedScreenshot
+		zoomedScreenshot,
+		loadByDeveloper
 	} from '$lib/stores/appStore';
 </script>
 
@@ -54,7 +55,19 @@
 			/>
 			<div class="min-w-0 flex-1">
 				<h2 class="text-3xl font-extrabold tracking-tight text-foreground leading-tight">{app.name}</h2>
-				<p class="text-sm text-primary font-semibold mt-1">{app.developer || 'Flathub'}</p>
+				{#if app.developer}
+					<div class="flex items-center gap-1 mt-1">
+						{#if app.verified}
+							<BadgeCheck class="w-4 h-4 text-blue-500 shrink-0" />
+						{/if}
+						<button
+							class="text-sm text-primary font-semibold hover:underline"
+							on:click={() => loadByDeveloper(app.developer)}
+						>{app.developer}</button>
+					</div>
+				{:else}
+					<p class="text-sm text-primary font-semibold mt-1">Flathub</p>
+				{/if}
 				<p class="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">{app.summary}</p>
 			</div>
 		</div>

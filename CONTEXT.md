@@ -43,12 +43,13 @@ The Go type `flathub.AppSummary` maps to `flathub.AppSummary` in TypeScript (imp
 | File | Purpose |
 |---|---|
 | `main.go` | Wails entry point; sets window Title/Width/Height/MinWidth/MinHeight and binds `app` |
-| `app.go` | All Wails-bound Go methods (`GetDiscoverApps`, `GetAppsByCategory`, `SearchApps`, `InstallApp`, `UninstallApp`, `UpdateApp`, `GetInstalledApps`, `GetPopularApps`, `GetPopularGames`, `GetPopularCreate`, `GetAppDetails`, `OpenApp`, `IsCatalogReady`) |
+| `app.go` | All Wails-bound Go methods (`GetDiscoverApps`, `GetAppsByCategory`, `GetAppsByDeveloper`, `SearchApps`, `InstallApp`, `UninstallApp`, `UpdateApp`, `GetInstalledApps`, `GetPopularApps`, `GetPopularGames`, `GetPopularCreate`, `GetAppDetails`, `OpenApp`, `IsCatalogReady`) |
 | `internal/flathub/client.go` | HTTP client for Flathub REST API v2; defines `AppSummary`, `apiHit`, `apiResponse`; fetch methods |
 | `internal/flathub/system.go` | `SystemManager` — wraps `flatpak` CLI; runs operations in goroutines; parses stdout for progress; emits `flatpak:progress` Wails events |
 | `internal/appstream/manager.go` | Downloads and parses `appstream.xml.gz` from Flathub at startup (`Sync()`); `GetApp(id)` backs `App.GetAppDetails`; `IsReady()` backs the bound `App.IsCatalogReady` method. `GetAppsByCategory` exists on the manager but is not yet exposed to the frontend (see Known Gaps). |
+| `internal/appstream/models.go` | AppStream XML struct definitions (`Catalog`, `Component`, etc.). `Component.Custom` parses the `<custom><value key="...">...</value></custom>` block; `Component.IsVerified()` checks for `flathub::verification::verified == "true"` and backs `AppDetails.Verified`. |
 | `frontend/src/App.svelte` | Thin composition shell — mounts `initApp()`/`destroyApp()` lifecycle and renders `Sidebar`, `DiscoverView`, `PopularView`, `InstalledView`, `AppDetailsPage`, `ScreenshotZoomModal` based on store state |
-| `frontend/src/lib/stores/appStore.ts` | **Single source of truth** — all Svelte stores (apps, installedApps, appProgress, theme, popular/hero state, details/zoom state, `catalogStatus`/`catalogError`), derived stores (`installedAppIds`, `updateableAppIds`, `activeTasksCount`, `updateableAppsCount`), and all business-logic functions (`loadDiscover`, `loadCategory`, `loadInstalled`, `loadPopular`, `handleSearch`, `handleInstall`/`handleUninstall`/`handleUpdate`, `handleUpdateAll`, `openDetails`/`closeDetails`, `applyTheme`, `initApp`/`destroyApp` which wires the Wails `flatpak:progress`, `catalog:ready`, and `catalog:error` event listeners) |
+| `frontend/src/lib/stores/appStore.ts` | **Single source of truth** — all Svelte stores (apps, installedApps, appProgress, theme, popular/hero state, details/zoom state, `catalogStatus`/`catalogError`), derived stores (`installedAppIds`, `updateableAppIds`, `activeTasksCount`, `updateableAppsCount`), and all business-logic functions (`loadDiscover`, `loadCategory`, `loadByDeveloper`, `loadInstalled`, `loadPopular`, `handleSearch`, `handleInstall`/`handleUninstall`/`handleUpdate`, `handleUpdateAll`, `openDetails`/`closeDetails`, `applyTheme`, `initApp`/`destroyApp` which wires the Wails `flatpak:progress`, `catalog:ready`, and `catalog:error` event listeners) |
 | `frontend/src/lib/types.ts` | All shared TypeScript interfaces/types (`AppDetails`, `AppSummary`, `InstalledApp`, `AppProgress`, `ProgressPayload`, `Category`, `Theme`, `PopularTab`, `FeaturedPromo`, `HeroGradient`) |
 | `frontend/src/lib/constants.ts` | Static data: `categories` (sidebar list w/ icons), `heroGradients`, `featuredPromos` |
 | `frontend/src/lib/components/Sidebar.svelte` | Left nav — search input, category list, theme/backup/activity popovers |
@@ -60,7 +61,7 @@ The Go type `flathub.AppSummary` maps to `flathub.AppSummary` in TypeScript (imp
 | `frontend/src/lib/components/DiscoverView.svelte` | Switches between `DiscoverDashboard` and standard `AppGrid` based on `discoverShowAll`/`activeCategory` |
 | `frontend/src/lib/components/PopularView.svelte` | Popular page — tab buttons, hero carousel, "More Apps" grid |
 | `frontend/src/lib/components/InstalledView.svelte` | Installed apps list + Update All button |
-| `frontend/src/lib/components/AppDetailsPage.svelte` | Full app detail page (hero header, actions, metadata, screenshots, description) |
+| `frontend/src/lib/components/AppDetailsPage.svelte` | Full app detail page (hero header, actions, metadata, screenshots, description). Developer name is a clickable link (calls `loadByDeveloper(app.developer)`) when present, preceded by a blue `BadgeCheck` icon when `app.verified` is true; falls back to plain, non-linked "Flathub" text when `app.developer` is empty |
 | `frontend/src/lib/components/ScreenshotZoomModal.svelte` | Fullscreen screenshot zoom overlay |
 | `frontend/wailsjs/go/main/App.d.ts` | TypeScript type declarations for Go methods |
 | `frontend/wailsjs/go/main/App.js` | JS bridge calling `window.go.main.App.*` |
@@ -91,6 +92,27 @@ type InstalledApp struct {
     UpdateAvailable bool   `json:"updateAvailable"`
 }
 ```
+
+### `flathub.AppDetails` (returned by `App.GetAppDetails`, backed entirely by the local AppStream catalog)
+```go
+type AppDetails struct {
+    FlatpakAppId  string   `json:"flatpakAppId"`
+    Name          string   `json:"name"`
+    Summary       string   `json:"summary"`
+    Description   string   `json:"description"`
+    HomepageUrl   string   `json:"homepageUrl"`
+    BugtrackerUrl string   `json:"bugtrackerUrl"`
+    IconUrl       string   `json:"iconUrl"`
+    Version       string   `json:"version"`
+    Developer     string   `json:"developer"`
+    Verified      bool     `json:"verified"` // from appstream.Component.IsVerified()
+    Screenshots   []string `json:"screenshots"`
+    ReleaseDate   string   `json:"releaseDate"`
+    AgeRating     string   `json:"ageRating"`
+    License       string   `json:"license"`
+}
+```
+**Important:** `AppDetails` is defined independently in three places that must stay in sync whenever a field is added/removed: `internal/flathub/client.go` (Go source of truth), `frontend/wailsjs/go/models.ts` (manually-maintained Wails binding), and `frontend/src/lib/types.ts` (app-level TS type). Also check the fallback object built in `openDetails()` in `appStore.ts` (used when `GetAppDetails` throws, e.g. catalog still syncing) — it must satisfy the same `AppDetails` interface.
 
 ### `flathub.ProgressPayload` (emitted as Wails event `"flatpak:progress"`)
 ```go
@@ -126,6 +148,8 @@ No authentication required.
 
 Icon URLs come directly from the `icon` field in API responses — they are absolute `https://` URLs.  
 Fallback icon on error: `https://dl.flathub.org/assets/default/settings.svg`
+
+**No dedicated "apps by developer" endpoint exists.** `Client.FetchByDeveloper(developer)` (in `internal/flathub/client.go`) works around this by calling `POST /search` with the developer's name as the query, then filtering the returned hits down to those whose `developer_name` matches the given developer case-insensitively (exact match after trimming whitespace). This is bound as `App.GetAppsByDeveloper` and powers the developer-name link on the app details page.
 
 ---
 
@@ -252,7 +276,8 @@ These were identified during development and not yet implemented:
 
 7. ~~**Popular page "More Apps" grid lacks uniform cell sizing**~~ — **DONE.** Extracted the Discover dashboard's 3-column fixed-height layout into a shared `lib/components/CompactAppGrid.svelte`, which evenly chunks any `apps` array into 3 columns (`Math.ceil(length/3)` per column) of `AppCardCompact.svelte` rows. `PopularView.svelte`'s "More Apps" section and `DiscoverDashboard.svelte`'s "New Apps and Updates" section both now use this same component, so cell sizing is uniform across both pages.
 
-8. ~~**Add Developer Link**~~ In the AppDetailsPage.svelte the developer needs to be a link to a page showing all apps from that developer
+8. **Developer name link relies on exact-match search filtering, not a real "by developer" API** — `Client.FetchByDeveloper` (see Flathub REST API v2 section) searches Flathub using the developer name as a full-text query and filters results by exact `developer_name` match. This works for most developers but will miss apps if: (a) the developer's Flathub search index doesn't surface all of their apps within the search result set, or (b) `developer_name` is formatted inconsistently across an org's own apps (e.g. "GNOME" vs "The GNOME Project"). If this proves unreliable in practice, revisit using the AppStream catalog (`appstream.Manager`) to build a real developer-name index client-side, since every `Component` already has a `Developer` field populated locally.
+
 ---
 
 ## Build & Dev Commands

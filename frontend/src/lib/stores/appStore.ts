@@ -139,6 +139,7 @@ export async function openDetails(appId: string): Promise<void> {
 				iconUrl: basicApp.iconUrl,
 				version: basicApp.version || 'Unknown',
 				developer: basicApp.developer || 'Flathub',
+				verified: false,
 				screenshots: [],
 				releaseDate: '',
 				ageRating: 'Everyone',
@@ -188,6 +189,26 @@ export async function loadCategory(catId: string, catLabel: string): Promise<voi
 
 	try {
 		apps.set((await wailsApp.GetAppsByCategory(catId)) || []);
+	} catch (err) {
+		errorMessage.set(String(err));
+	} finally {
+		isLoading.set(false);
+	}
+}
+
+// Shows all apps published by a given developer, using the standard grid
+// view (same layout as search results). Triggered by clicking the developer
+// name link on the app details page.
+export async function loadByDeveloper(developer: string): Promise<void> {
+	selectedAppIdForPage.set(null);
+	activeCategory.set(null);
+	viewTitle.set(`Apps by ${developer}`);
+	searchQuery.set('');
+	isLoading.set(true);
+	errorMessage.set('');
+
+	try {
+		apps.set((await wailsApp.GetAppsByDeveloper(developer)) || []);
 	} catch (err) {
 		errorMessage.set(String(err));
 	} finally {

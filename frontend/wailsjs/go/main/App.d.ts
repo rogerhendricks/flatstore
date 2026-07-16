@@ -6,6 +6,8 @@ export function GetAppDetails(arg1:string):Promise<flathub.AppDetails>;
 
 export function GetAppsByCategory(arg1:string):Promise<Array<flathub.AppSummary>>;
 
+export function GetAppsByDeveloper(arg1:string):Promise<Array<flathub.AppSummary>>;
+
 export function GetDiscoverApps():Promise<Array<flathub.AppSummary>>;
 
 export function GetInstalledApps():Promise<Array<flathub.InstalledApp>>;

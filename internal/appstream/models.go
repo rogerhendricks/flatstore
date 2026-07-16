@@ -30,6 +30,30 @@ type Component struct {
 	Screenshots    []Screenshot    `xml:"screenshots>screenshot"`
 	ProjectLicense string          `xml:"project_license"`
 	ContentRating  *ContentRating  `xml:"content_rating"`
+	Custom         Custom          `xml:"custom"`
+}
+
+// Custom holds the <custom><value key="...">...</value></custom> block that
+// Flathub uses to attach extra metadata not covered by the AppStream spec,
+// such as verification status.
+type Custom struct {
+	Values []CustomValue `xml:"value"`
+}
+
+type CustomValue struct {
+	Key   string `xml:"key,attr"`
+	Value string `xml:",chardata"`
+}
+
+// IsVerified reports whether Flathub has marked this app as verified, i.e.
+// <custom><value key="flathub::verification::verified">true</value></custom>.
+func (c *Component) IsVerified() bool {
+	for _, v := range c.Custom.Values {
+		if v.Key == "flathub::verification::verified" {
+			return strings.EqualFold(strings.TrimSpace(v.Value), "true")
+		}
+	}
+	return false
 }
 
 type LocalizedString struct {

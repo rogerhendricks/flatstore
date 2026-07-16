@@ -32,12 +32,12 @@ type AppDetails struct {
 	IconUrl       string   `json:"iconUrl"`
 	Version       string   `json:"version"`
 	Developer     string   `json:"developer"`
+	Verified      bool     `json:"verified"`
 	Screenshots   []string `json:"screenshots"`
 	ReleaseDate   string   `json:"releaseDate"`
 	AgeRating     string   `json:"ageRating"`
 	License       string   `json:"license"`
 }
-
 
 // apiHit matches the raw JSON shape of a single record returned by the
 // Flathub v2 API (field names differ from AppSummary).
@@ -141,6 +141,42 @@ func (c *Client) Search(query string) ([]AppSummary, error) {
 		return nil, err
 	}
 	return toAppSummaries(result.Hits), nil
+}
+
+// FetchByDeveloper returns all apps published by the given developer. The
+// Flathub v2 API has no dedicated "by developer" endpoint, so we run a full
+// text search using the developer's name and then filter the hits down to
+// those whose developer_name matches exactly (case-insensitive). This avoids
+// surfacing unrelated apps that merely mention the developer's name
+// somewhere in their summary/description.
+func (c *Client) FetchByDeveloper(developer string) ([]AppSummary, error) {
+	body, err := json.Marshal(map[string]string{"query": developer})
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.httpClient.Post(
+		fmt.Sprintf("%s/search", c.apiBase),
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result apiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	filtered := make([]apiHit, 0, len(result.Hits))
+	for _, h := range result.Hits {
+		if strings.EqualFold(strings.TrimSpace(h.DeveloperName), strings.TrimSpace(developer)) {
+			filtered = append(filtered, h)
+		}
+	}
+
+	return toAppSummaries(filtered), nil
 }
 
 // fetchCategoryHits retrieves raw hit records for a given category so that

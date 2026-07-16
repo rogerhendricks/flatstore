@@ -10,6 +10,7 @@ export namespace flathub {
 	    iconUrl: string;
 	    version: string;
 	    developer: string;
+	    verified: boolean;
 	    screenshots: string[];
 	    releaseDate: string;
 	    ageRating: string;
@@ -30,6 +31,7 @@ export namespace flathub {
 	        this.iconUrl = source["iconUrl"];
 	        this.version = source["version"];
 	        this.developer = source["developer"];
+	        this.verified = source["verified"];
 	        this.screenshots = source["screenshots"];
 	        this.releaseDate = source["releaseDate"];
 	        this.ageRating = source["ageRating"];

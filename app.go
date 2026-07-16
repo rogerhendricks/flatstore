@@ -57,6 +57,12 @@ func (a *App) SearchApps(query string) ([]flathub.AppSummary, error) {
 	return a.flathub.Search(query)
 }
 
+// GetAppsByDeveloper returns all apps published by the given developer,
+// used by the app details page's developer link.
+func (a *App) GetAppsByDeveloper(developer string) ([]flathub.AppSummary, error) {
+	return a.flathub.FetchByDeveloper(developer)
+}
+
 // InstallApp handles async tasks natively now
 func (a *App) InstallApp(appID string, installAsSystem bool) error {
 	args := []string{"install", "flathub", appID}
@@ -182,6 +188,7 @@ func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
 		IconUrl:       iconURL,
 		Version:       version,
 		Developer:     comp.Developer,
+		Verified:      comp.IsVerified(),
 		Screenshots:   screenshots,
 		ReleaseDate:   releaseDate,
 		AgeRating:     comp.ContentRating.GetAgeRating(),

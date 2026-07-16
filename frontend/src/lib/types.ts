@@ -8,6 +8,7 @@ export interface AppDetails {
 	iconUrl: string;
 	version: string;
 	developer: string;
+	verified: boolean;
 	screenshots: string[];
 	releaseDate: string;
 	ageRating: string;
