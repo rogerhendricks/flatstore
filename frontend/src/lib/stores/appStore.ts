@@ -145,7 +145,8 @@ export async function openDetails(appId: string): Promise<void> {
 				screenshots: [],
 				releaseDate: '',
 				ageRating: 'Everyone',
-				license: 'Unknown'
+				license: 'Unknown',
+				releases: []
 			});
 		}
 	} finally {
