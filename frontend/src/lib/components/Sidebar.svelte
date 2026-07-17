@@ -15,12 +15,14 @@
 	} from '@lucide/svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Progress } from '$lib/components/ui/progress';
+	import { Badge } from '$lib/components/ui/badge'; // New import
 	import { categories } from '$lib/constants';
 	import {
 		searchQuery,
 		activeCategory,
 		appProgress,
 		activeTasksCount,
+		updateableAppsCount, // New import
 		currentTheme,
 		applyTheme,
 		getProgressColorClass,
@@ -102,6 +104,9 @@
 			>
 				<HardDriveDownload class="w-4 h-4 shrink-0" />
 				Installed Apps
+				{#if $updateableAppsCount > 0}
+					<Badge variant="destructive" class="ml-auto px-2 py-0.5 text-xs">{$updateableAppsCount}</Badge>
+				{/if}
 			</button>
 		</li>
 	</ul>
