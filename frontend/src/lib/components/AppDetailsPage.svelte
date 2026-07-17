@@ -138,7 +138,7 @@
 
 		<!-- Metadata Section -->
 		<hr class="border-border my-6" />
-		<div class="grid grid-cols-4 gap-y-6 gap-x-4 text-xs max-w-4xl mb-8">
+		<div class="grid grid-cols-4 gap-y-6 gap-x-4 text-xs w-full mb-8">
 			<div>
 				<p class="text-muted-foreground font-semibold uppercase tracking-wider mb-1">Developer</p>
 				<p class="text-sm font-bold text-foreground truncate">{app.developer || 'Flathub'}</p>
@@ -161,38 +161,13 @@
 				<p class="text-muted-foreground font-semibold uppercase tracking-wider mb-1">License</p>
 				<p class="text-sm font-bold text-foreground truncate" title={app.license}>{app.license || 'Unknown'}</p>
 			</div>
-			{#if app.homepageUrl}
-				<div class="col-span-4 mt-2">
-					<p class="text-muted-foreground font-semibold uppercase tracking-wider mb-2">Project Links</p>
-					<div class="flex gap-4">
-						<a
-							href={app.homepageUrl}
-							target="_blank"
-							class="flex items-center gap-1 text-primary hover:underline font-bold"
-						>
-							<span>Homepage</span>
-							<ExternalLink class="w-3.5 h-3.5" />
-						</a>
-						{#if app.bugtrackerUrl}
-							<a
-								href={app.bugtrackerUrl}
-								target="_blank"
-								class="flex items-center gap-1 text-primary hover:underline font-bold"
-							>
-								<span>Bug Tracker</span>
-								<ExternalLink class="w-3.5 h-3.5" />
-							</a>
-						{/if}
-					</div>
-				</div>
-			{/if}
 		</div>
 
 		<!-- Screenshots Section -->
 		{#if app.screenshots && app.screenshots.length > 0}
 			<hr class="border-border my-6" />
 			<h3 class="text-base font-bold text-foreground mb-4">Screenshots</h3>
-			<div class="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-rounded max-w-4xl">
+			<div class="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-rounded w-full">
 				{#each app.screenshots as src}
 					<img
 						class="h-64 rounded-xl border border-border object-cover cursor-zoom-in hover:brightness-95 transition-all shadow-sm shrink-0"
@@ -204,23 +179,69 @@
 			</div>
 		{/if}
 
-		<!-- Description Section -->
+		<!-- Description & Sidebar Section -->
 		<hr class="border-border my-6" />
-		<div class="relative max-w-5xl">
-			<div
-				class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert min-w-0"
-				class:line-clamp-5={!showFullDescription}
-			>
-				{@html app.description}
+		<div class="grid grid-cols-[1fr_auto] gap-10 items-start w-full">
+			<!-- Left Column: Description -->
+			<div class="relative min-w-0">
+				<h3 class="text-base font-bold text-foreground mb-4">About</h3>
+				<div
+					class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert min-w-0"
+					class:line-clamp-5={!showFullDescription}
+				>
+					{@html app.description}
+				</div>
+				<div class="flex justify-end mt-2">
+					<button class="text-primary font-semibold text-sm hover:underline" on:click={() => (showFullDescription = !showFullDescription)}>
+						{showFullDescription ? 'Show less' : 'Show more'}
+					</button>
+				</div>
 			</div>
-			<button class="text-primary font-semibold text-sm hover:underline mt-2" on:click={() => (showFullDescription = !showFullDescription)}>
-				{showFullDescription ? 'Show less' : 'Show more'}
-			</button>
+
+			<!-- Right Column: Project Links (Compact stacked list) -->
+			<aside class="w-48 shrink-0 flex flex-col gap-y-3 pt-8 text-xs font-semibold">
+				{#if app.homepageUrl}
+					<a
+						href={app.homepageUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center gap-1.5 text-primary hover:underline"
+						title="Website"
+					>
+						<span>Website</span>
+						<ExternalLink class="w-3.5 h-3.5" />
+					</a>
+				{/if}
+				{#if app.helpUrl}
+					<a
+						href={app.helpUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center gap-1.5 text-primary hover:underline"
+						title="Support"
+					>
+						<span>Support</span>
+						<ExternalLink class="w-3.5 h-3.5" />
+					</a>
+				{/if}
+				{#if app.vcsBrowserUrl}
+					<a
+						href={app.vcsBrowserUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center gap-1.5 text-primary hover:underline"
+						title="Source"
+					>
+						<span>Source</span>
+						<ExternalLink class="w-3.5 h-3.5" />
+					</a>
+				{/if}
+			</aside>
 		</div>
 
 		<!-- What's New Section -->
 		<hr class="border-border my-6" />
-		<div class="grid grid-cols-[1fr_auto] gap-10 items-start pb-16 max-w-5xl">
+		<div class="grid grid-cols-[1fr_auto] gap-10 items-start pb-16 w-full">
 			<div>
 				<h3 class="text-base font-bold text-foreground mb-4">What's New</h3>
 				<div class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert min-w-0">
@@ -232,18 +253,18 @@
 				</div>
 			</div>
 
-			<aside class="w-56 shrink-0 space-y-4">
-				<h3 class="text-base font-bold text-foreground mb-4">Version History</h3>
-				<div class="space-y-4">
+			<!-- Right Column: Latest Version sidebar -->
+			<aside class="w-48 shrink-0 space-y-3 pt-1">
+				<h3 class="text-base font-bold text-foreground">Latest Version</h3>
+				<div class="font-medium">
 					{#if app.releases && app.releases.length > 0}
-						{#each app.releases as release}
-							<div>
-								<p class="font-semibold text-sm">{release.version}</p>
-								<p class="text-xs text-muted-foreground">{release.date}</p>
-							</div>
-						{/each}
+						{@const latest = app.releases[0]}
+						<div>
+							<p class="font-semibold text-sm">{latest.version}</p>
+							<p class="text-xs text-muted-foreground">{latest.date}</p>
+						</div>
 					{:else}
-						<p class="text-sm text-muted-foreground">No release history available.</p>
+						<p class="text-sm text-muted-foreground">No release details available.</p>
 					{/if}
 				</div>
 			</aside>
