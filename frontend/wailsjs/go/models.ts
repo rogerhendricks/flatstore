@@ -7,6 +7,8 @@ export namespace flathub {
 	    description: string;
 	    homepageUrl: string;
 	    bugtrackerUrl: string;
+	    helpUrl: string;
+	    vcsBrowserUrl: string;
 	    iconUrl: string;
 	    version: string;
 	    developer: string;
@@ -28,6 +30,8 @@ export namespace flathub {
 	        this.description = source["description"];
 	        this.homepageUrl = source["homepageUrl"];
 	        this.bugtrackerUrl = source["bugtrackerUrl"];
+	        this.helpUrl = source["helpUrl"];
+	        this.vcsBrowserUrl = source["vcsBrowserUrl"];
 	        this.iconUrl = source["iconUrl"];
 	        this.version = source["version"];
 	        this.developer = source["developer"];

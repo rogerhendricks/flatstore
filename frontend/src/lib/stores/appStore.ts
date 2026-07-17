@@ -136,6 +136,8 @@ export async function openDetails(appId: string): Promise<void> {
 				description: `<p>${basicApp.summary}</p><p class="text-xs text-muted-foreground mt-4">Full description is currently unavailable because the AppStream catalog is still syncing. You can still install or run this app.</p>`,
 				homepageUrl: '',
 				bugtrackerUrl: '',
+				helpUrl: '',
+				vcsBrowserUrl: '',
 				iconUrl: basicApp.iconUrl,
 				version: basicApp.version || 'Unknown',
 				developer: basicApp.developer || 'Flathub',

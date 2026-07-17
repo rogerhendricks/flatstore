@@ -206,8 +206,9 @@ type Releases struct {
 }
 
 type Release struct {
-	Version string `xml:"version,attr"`
-	Date    string `xml:"date,attr"`
+	Version     string      `xml:"version,attr"`
+	Date        string      `xml:"date,attr"`
+	Description Description `xml:"description"`
 }
 
 type ContentRating struct {

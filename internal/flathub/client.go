@@ -23,20 +23,29 @@ type AppSummary struct {
 }
 
 type AppDetails struct {
-	FlatpakAppId  string   `json:"flatpakAppId"`
-	Name          string   `json:"name"`
-	Summary       string   `json:"summary"`
-	Description   string   `json:"description"`
-	HomepageUrl   string   `json:"homepageUrl"`
-	BugtrackerUrl string   `json:"bugtrackerUrl"`
-	IconUrl       string   `json:"iconUrl"`
-	Version       string   `json:"version"`
-	Developer     string   `json:"developer"`
-	Verified      bool     `json:"verified"`
-	Screenshots   []string `json:"screenshots"`
-	ReleaseDate   string   `json:"releaseDate"`
-	AgeRating     string   `json:"ageRating"`
-	License       string   `json:"license"`
+	FlatpakAppId  string    `json:"flatpakAppId"`
+	Name          string    `json:"name"`
+	Summary       string    `json:"summary"`
+	Description   string    `json:"description"`
+	HomepageUrl   string    `json:"homepageUrl"`
+	BugtrackerUrl string    `json:"bugtrackerUrl"`
+	HelpUrl       string    `json:"helpUrl"`
+	VcsBrowserUrl string    `json:"vcsBrowserUrl"`
+	IconUrl       string    `json:"iconUrl"`
+	Version       string    `json:"version"`
+	Developer     string    `json:"developer"`
+	Verified      bool      `json:"verified"`
+	Screenshots   []string  `json:"screenshots"`
+	Releases      []Release `json:"releases"`
+	ReleaseDate   string    `json:"releaseDate"`
+	AgeRating     string    `json:"ageRating"`
+	License       string    `json:"license"`
+}
+
+type Release struct {
+	Version     string `json:"version"`
+	Date        string `json:"date"`
+	Description string `json:"description"`
 }
 
 // apiHit matches the raw JSON shape of a single record returned by the

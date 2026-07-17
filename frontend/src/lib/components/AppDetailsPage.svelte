@@ -21,6 +21,8 @@
 		zoomedScreenshot,
 		loadByDeveloper
 	} from '$lib/stores/appStore';
+
+	let showFullDescription = false;
 </script>
 
 <section class="flex-1 overflow-y-auto p-8 bg-background" transition:fade={{ duration: 150 }}>
@@ -204,9 +206,47 @@
 
 		<!-- Description Section -->
 		<hr class="border-border my-6" />
-		<h3 class="text-base font-bold text-foreground mb-4">About</h3>
-		<div class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert max-w-3xl pb-16">
-			{@html app.description}
+		<div class="relative max-w-5xl">
+			<div
+				class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert min-w-0"
+				class:line-clamp-5={!showFullDescription}
+			>
+				{@html app.description}
+			</div>
+			<button class="text-primary font-semibold text-sm hover:underline mt-2" on:click={() => (showFullDescription = !showFullDescription)}>
+				{showFullDescription ? 'Show less' : 'Show more'}
+			</button>
+		</div>
+
+		<!-- What's New Section -->
+		<hr class="border-border my-6" />
+		<div class="grid grid-cols-[1fr_auto] gap-10 items-start pb-16 max-w-5xl">
+			<div>
+				<h3 class="text-base font-bold text-foreground mb-4">What's New</h3>
+				<div class="text-sm leading-relaxed text-muted-foreground space-y-4 prose dark:prose-invert min-w-0">
+					{#if app.releases && app.releases.length > 0 && app.releases[0].description}
+						{@html app.releases[0].description}
+					{:else}
+						<p>No description for the latest release.</p>
+					{/if}
+				</div>
+			</div>
+
+			<aside class="w-56 shrink-0 space-y-4">
+				<h3 class="text-base font-bold text-foreground mb-4">Version History</h3>
+				<div class="space-y-4">
+					{#if app.releases && app.releases.length > 0}
+						{#each app.releases as release}
+							<div>
+								<p class="font-semibold text-sm">{release.version}</p>
+								<p class="text-xs text-muted-foreground">{release.date}</p>
+							</div>
+						{/each}
+					{:else}
+						<p class="text-sm text-muted-foreground">No release history available.</p>
+					{/if}
+				</div>
+			</aside>
 		</div>
 	{/if}
 </section>

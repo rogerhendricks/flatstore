@@ -5,6 +5,8 @@ export interface AppDetails {
 	description: string;
 	homepageUrl: string;
 	bugtrackerUrl: string;
+	helpUrl: string;
+	vcsBrowserUrl: string;
 	iconUrl: string;
 	version: string;
 	developer: string;
@@ -13,6 +15,13 @@ export interface AppDetails {
 	releaseDate: string;
 	ageRating: string;
 	license: string;
+	releases: Release[];
+}
+
+export interface Release {
+	version: string;
+	date: string;
+	description: string;
 }
 
 export interface AppSummary {

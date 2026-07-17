@@ -143,11 +143,19 @@ func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
 
 	var homepageURL string
 	var bugtrackerURL string
+	var helpURL string
+	var vcsBrowserURL string
 	for _, u := range comp.URLs {
 		if u.Type == "homepage" {
 			homepageURL = u.Value
 		} else if u.Type == "bugtracker" {
 			bugtrackerURL = u.Value
+		} else if u.Type == "help" || u.Type == "faq" {
+			if helpURL == "" {
+				helpURL = u.Value
+			}
+		} else if u.Type == "vcs-browser" {
+			vcsBrowserURL = u.Value
 		}
 	}
 
@@ -173,9 +181,13 @@ func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
 
 	var version string
 	var releaseDate string
+	var releases []flathub.Release
 	if len(comp.Releases.List) > 0 {
 		version = comp.Releases.List[0].Version
 		releaseDate = comp.Releases.List[0].Date
+		for _, r := range comp.Releases.List {
+			releases = append(releases, flathub.Release{Version: r.Version, Date: r.Date, Description: r.Description.Raw})
+		}
 	}
 
 	details := &flathub.AppDetails{
@@ -185,11 +197,14 @@ func (a *App) GetAppDetails(appID string) (*flathub.AppDetails, error) {
 		Description:   comp.Description.Raw,
 		HomepageUrl:   homepageURL,
 		BugtrackerUrl: bugtrackerURL,
+		HelpUrl:       helpURL,
+		VcsBrowserUrl: vcsBrowserURL,
 		IconUrl:       iconURL,
 		Version:       version,
 		Developer:     comp.Developer,
 		Verified:      comp.IsVerified(),
 		Screenshots:   screenshots,
+		Releases:      releases,
 		ReleaseDate:   releaseDate,
 		AgeRating:     comp.ContentRating.GetAgeRating(),
 		License:       comp.ProjectLicense,
